@@ -1,0 +1,10 @@
+build/bin/
+build/windows/
+node_modules/
+dist/
+*.exe
+*.dll
+*.dat
+*.key
+totp.dat
+totp.key

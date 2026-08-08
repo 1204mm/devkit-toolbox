@@ -1,0 +1,222 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: #1e1e2e;
+  color: #cdd6f4;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #45475a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #585b70;
+}
+
+/* Ant Design Vue 深色主题覆盖 */
+.ant-table {
+  background: transparent !important;
+  color: #cdd6f4 !important;
+}
+
+.ant-table-thead > tr > th {
+  background: #181825 !important;
+  color: #a6adc8 !important;
+  border-bottom: 1px solid #313244 !important;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.ant-table-tbody > tr > td {
+  background: transparent !important;
+  border-bottom: 1px solid #1e1e2e !important;
+  color: #cdd6f4 !important;
+  font-size: 13px;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #181825 !important;
+}
+
+.ant-table-tbody > tr.ant-table-row-selected > td {
+  background: #313244 !important;
+}
+
+.ant-table-cell-row-hover {
+  background: #181825 !important;
+}
+
+.ant-radio-wrapper {
+  color: #cdd6f4;
+}
+
+.ant-radio-inner {
+  background: #313244;
+  border-color: #585b70;
+}
+
+.ant-radio-checked .ant-radio-inner {
+  background: #89b4fa;
+  border-color: #89b4fa;
+}
+
+.ant-empty-description {
+  color: #6c7086;
+}
+
+.ant-btn-primary {
+  background: #89b4fa;
+  border-color: #89b4fa;
+}
+
+.ant-btn-primary:hover {
+  background: #b4befe;
+  border-color: #b4befe;
+}
+
+.ant-btn-dangerous {
+  color: #f38ba8;
+  border-color: #f38ba8;
+}
+
+.ant-btn-dangerous:hover {
+  background: #f38ba8;
+  color: #fff;
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-password {
+  background: #11111b !important;
+  border-color: #313244 !important;
+  color: #cdd6f4 !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: #89b4fa !important;
+}
+
+.ant-input::placeholder {
+  color: #585b70 !important;
+}
+
+.ant-select-selector {
+  background: #11111b !important;
+  border-color: #313244 !important;
+  color: #cdd6f4 !important;
+}
+
+.ant-select-arrow {
+  color: #585b70 !important;
+}
+
+.ant-select-dropdown {
+  background: #181825 !important;
+  border: 1px solid #313244 !important;
+}
+
+.ant-select-item {
+  color: #cdd6f4 !important;
+}
+
+.ant-select-item-option-active {
+  background: #313244 !important;
+}
+
+.ant-select-item-option-selected {
+  background: #45475a !important;
+}
+
+.ant-tabs-tab {
+  color: #6c7086 !important;
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #89b4fa !important;
+}
+
+.ant-tabs-ink-bar {
+  background: #89b4fa !important;
+}
+
+.ant-tabs-tab:hover {
+  color: #cdd6f4 !important;
+}
+
+.ant-radio-button-wrapper {
+  background: #11111b !important;
+  border-color: #313244 !important;
+  color: #6c7086 !important;
+}
+
+.ant-radio-button-wrapper-checked {
+  background: #89b4fa !important;
+  border-color: #89b4fa !important;
+  color: #1e1e2e !important;
+}
+
+.ant-message-notice-content {
+  background: #181825 !important;
+  color: #cdd6f4 !important;
+  border: 1px solid #313244 !important;
+}
+
+.ant-modal-content {
+  background: #1e1e2e !important;
+  color: #cdd6f4 !important;
+  border: 1px solid #313244 !important;
+}
+
+.ant-modal-header {
+  background: #1e1e2e !important;
+  border-bottom: 1px solid #313244 !important;
+}
+
+.ant-modal-title {
+  color: #cdd6f4 !important;
+}
+
+.ant-modal-confirm-body .ant-modal-confirm-title {
+  color: #cdd6f4 !important;
+}
+
+.ant-modal-confirm-body .ant-modal-confirm-content {
+  color: #b0b0b0 !important;
+}
+
+.ant-modal-close-icon {
+  color: #6c7086 !important;
+}
+
+textarea.ant-input {
+  background: #11111b !important;
+  border-color: #313244 !important;
+  color: #cdd6f4 !important;
+}
+
+textarea.ant-input:focus {
+  border-color: #89b4fa !important;
+}
