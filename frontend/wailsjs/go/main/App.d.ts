@@ -18,6 +18,8 @@ export function DesDecrypt(arg1:string,arg2:string):Promise<string>;
 
 export function DesEncrypt(arg1:string,arg2:string):Promise<string>;
 
+export function ExportIcons(arg1:main.ExportParams):Promise<string>;
+
 export function Hash(arg1:string,arg2:string):Promise<string>;
 
 export function HexDecode(arg1:string):Promise<string>;
@@ -31,6 +33,10 @@ export function IsAdmin():Promise<boolean>;
 export function KillPid(arg1:number):Promise<void>;
 
 export function KillPort(arg1:number):Promise<void>;
+
+export function LoadImageByPath(arg1:string):Promise<main.ImageInfo>;
+
+export function OpenImageDialog():Promise<main.ImageInfo>;
 
 export function RSADecrypt(arg1:string,arg2:string):Promise<string>;
 

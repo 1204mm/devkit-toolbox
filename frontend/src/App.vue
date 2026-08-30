@@ -5,6 +5,7 @@ import Crypto from './pages/Crypto.vue'
 import JsonFormatter from './pages/JsonFormatter.vue'
 import Totp from './pages/Totp.vue'
 import DevTools from './pages/DevTools.vue'
+import IconForge from './pages/IconForge.vue'
 
 const activeMenu = ref('port')
 
@@ -14,6 +15,7 @@ const menuItems = [
   { key: 'totp', label: '2FA验证码' },
   { key: 'json', label: 'JSON格式化' },
   { key: 'tools', label: '常用工具' },
+  { key: 'iconforge', label: '图标生成' },
 ]
 </script>
 
@@ -40,6 +42,7 @@ const menuItems = [
       <Totp v-else-if="activeMenu === 'totp'" />
       <JsonFormatter v-else-if="activeMenu === 'json'" />
       <DevTools v-else-if="activeMenu === 'tools'" />
+      <IconForge v-else-if="activeMenu === 'iconforge'" />
     </main>
   </div>
 </template>

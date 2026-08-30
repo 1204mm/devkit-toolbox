@@ -3,9 +3,11 @@ module portmanager
 go 1.25.0
 
 require (
+	github.com/disintegration/imaging v1.6.2
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/wailsapp/wails/v2 v2.13.0
 	golang.org/x/crypto v0.54.0
+	golang.org/x/image v0.45.0
 	golang.org/x/sys v0.47.0
 )
 
@@ -41,7 +43,7 @@ require (
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 )
 
 // replace github.com/wailsapp/wails/v2 v2.13.0 => D:\develop\GoWorkspace\pkg\mod

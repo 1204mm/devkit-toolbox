@@ -34,6 +34,10 @@ export function DesEncrypt(arg1, arg2) {
   return window['go']['main']['App']['DesEncrypt'](arg1, arg2);
 }
 
+export function ExportIcons(arg1) {
+  return window['go']['main']['App']['ExportIcons'](arg1);
+}
+
 export function Hash(arg1, arg2) {
   return window['go']['main']['App']['Hash'](arg1, arg2);
 }
@@ -60,6 +64,14 @@ export function KillPid(arg1) {
 
 export function KillPort(arg1) {
   return window['go']['main']['App']['KillPort'](arg1);
+}
+
+export function LoadImageByPath(arg1) {
+  return window['go']['main']['App']['LoadImageByPath'](arg1);
+}
+
+export function OpenImageDialog() {
+  return window['go']['main']['App']['OpenImageDialog']();
 }
 
 export function RSADecrypt(arg1, arg2) {

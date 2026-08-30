@@ -38,6 +38,14 @@
 - 格式化 / 压缩 / 校验，支持 2 / 4 空格缩进
 - 一键复制、输出一键回填输入
 
+### 🖼 图标生成
+
+- PNG / JPG / BMP / GIF 一键转多尺寸 ICO（16 ~ 256px 自由勾选）
+- **圆角自动识别**：自动检测图片四角的多余背景（如带浅色圆角外框的图标图），一键切除为透明，滑块微调半径
+- 正方形裁剪：拖拽画布调整裁剪区域，实时多尺寸预览
+- 圆角切割基于带符号距离场（SDF）抗锯齿蒙版，边缘平滑无锯齿；Lanczos 高质量缩放
+- 导出 ZIP：各尺寸独立 ICO + 多尺寸合一 `icon.ico` 一次打包
+
 ### 🧰 常用工具
 
 | 工具 | 说明 |
@@ -53,10 +61,11 @@
 | 层 | 技术 |
 |----|------|
 | 桌面框架 | [Wails v2](https://wails.io) |
-| 后端 | Go（[gopsutil](https://github.com/shirou/gopsutil) 读取端口与进程） |
+| 后端 | Go（[gopsutil](https://github.com/shirou/gopsutil) 读取端口与进程，[imaging](https://github.com/disintegration/imaging) 图像处理） |
 | 前端 | Vue 3 + TypeScript + Vite |
 | UI | Ant Design Vue 4（Catppuccin Mocha 深色主题定制） |
 | Cron 解析 | [cron-parser](https://github.com/pentestfunctions/cron-parser) + [cronstrue](https://github.com/bradymholt/cronstrue)（中文描述） |
+| 图标算法 | 圆角识别（对角线/边缘扫描 + 最小二乘圆拟合）、SDF 抗锯齿蒙版、Lanczos 缩放、ICO 编码（BMP+PNG 双格式），含单元测试 |
 
 ## 🚀 开发与构建
 
@@ -85,8 +94,10 @@ powershell -ExecutionPolicy Bypass -File make-ico.ps1
 ## 📁 目录结构
 
 ```
-├── app.go                  # 后端：端口扫描/杀死、加密解密、TOTP 等全部能力
+├── app.go                  # 后端：端口扫描/杀死、加密解密、TOTP、图标生成等全部能力
 ├── main.go                 # Wails 入口
+├── imagetools.go           # 图标算法：圆角识别/切割、裁剪、缩放、ICO 编码
+├── imagetools_test.go      # 图标算法单元测试
 ├── build/
 │   ├── appicon.png         # 应用图标源
 │   └── windows/icon.ico    # 多尺寸图标（由 make-ico.ps1 生成）
@@ -99,11 +110,16 @@ powershell -ExecutionPolicy Bypass -File make-ico.ps1
 │   │       ├── Totp.vue          # 2FA 验证码
 │   │       ├── JsonFormatter.vue # JSON 格式化
 │   │       ├── DevTools.vue      # 常用工具（容器）
+│   │       ├── IconForge.vue     # 图标生成
 │   │       └── tools/            # 时间戳/JWT/Cron/UUID/正则
 │   └── wailsjs/            # Wails 自动生成的 Go 绑定
 ├── icon-1024-rounded.png   # 图标母版
 └── make-ico.ps1            # 图标重建脚本
 ```
+
+## 🙌 致谢
+
+「图标生成」功能合并自独立项目 [IconForge](https://github.com/1204mm)（同为 Wails + Vue3 构建，MIT 协议）。
 
 ## 📄 说明
 
