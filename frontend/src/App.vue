@@ -4,6 +4,7 @@ import PortManager from './pages/PortManager.vue'
 import Crypto from './pages/Crypto.vue'
 import JsonFormatter from './pages/JsonFormatter.vue'
 import Totp from './pages/Totp.vue'
+import DevTools from './pages/DevTools.vue'
 
 const activeMenu = ref('port')
 
@@ -12,6 +13,7 @@ const menuItems = [
   { key: 'crypto', label: '加密解密' },
   { key: 'totp', label: '2FA验证码' },
   { key: 'json', label: 'JSON格式化' },
+  { key: 'tools', label: '常用工具' },
 ]
 </script>
 
@@ -37,6 +39,7 @@ const menuItems = [
       <Crypto v-else-if="activeMenu === 'crypto'" />
       <Totp v-else-if="activeMenu === 'totp'" />
       <JsonFormatter v-else-if="activeMenu === 'json'" />
+      <DevTools v-else-if="activeMenu === 'tools'" />
     </main>
   </div>
 </template>

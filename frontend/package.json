@@ -9,15 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.5.0",
+    "@ant-design/icons-vue": "^7.0.0",
     "ant-design-vue": "^4.2.0",
-    "@ant-design/icons-vue": "^7.0.0"
+    "cron-parser": "^5.10.0",
+    "cronstrue": "^3.24.0",
+    "dayjs": "^1.11.23",
+    "vue": "^3.5.0"
   },
   "devDependencies": {
+    "@babel/types": "^7.26.0",
     "@vitejs/plugin-vue": "^6.0.0",
     "typescript": "^5.6.3",
     "vite": "^7.0.0",
-    "vue-tsc": "^2.1.0",
-    "@babel/types": "^7.26.0"
+    "vue-tsc": "^2.1.0"
   }
 }

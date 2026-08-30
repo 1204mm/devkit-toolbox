@@ -5,7 +5,9 @@ import {
   TOTPGenerateAll, TOTPAddSecret, TOTPDeleteSecret,
   TOTPIsPasswordSet, TOTPSetupPassword, TOTPUnlock, TOTPIsUnlocked,
 } from '../../wailsjs/go/main/App'
-import type { TOTPCode } from '../../wailsjs/go/main/App'
+import type { main } from '../../wailsjs/go/models'
+
+type TOTPCode = main.TOTPCode
 
 const codes = ref<TOTPCode[]>([])
 const remain = ref(30)
@@ -353,6 +355,7 @@ onUnmounted(() => {
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
   font-size: 28px;
   font-weight: 700;
+  line-height: 1.8;
   color: #a6e3a1;
   letter-spacing: 4px;
   cursor: pointer;
