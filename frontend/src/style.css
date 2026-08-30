@@ -220,3 +220,53 @@ textarea.ant-input {
 textarea.ant-input:focus {
   border-color: #89b4fa !important;
 }
+
+/* 复选框：深色背景下的文字与框色 */
+.ant-checkbox-wrapper {
+  color: #cdd6f4 !important;
+}
+
+.ant-checkbox-wrapper:hover .ant-checkbox-inner {
+  border-color: #89b4fa !important;
+}
+
+.ant-checkbox-inner {
+  background: #11111b !important;
+  border-color: #585b70 !important;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner {
+  background: #89b4fa !important;
+  border-color: #89b4fa !important;
+}
+
+/* 标签：默认与蓝色变体 */
+.ant-tag {
+  background: #181825 !important;
+  border-color: #313244 !important;
+  color: #a6adc8 !important;
+}
+
+.ant-tag-blue {
+  background: rgba(137, 180, 250, 0.15) !important;
+  border-color: #89b4fa !important;
+  color: #89b4fa !important;
+}
+
+/* 数字输入框 */
+.ant-input-number {
+  background: #11111b !important;
+  border-color: #313244 !important;
+  color: #cdd6f4 !important;
+}
+
+.ant-input-number-input {
+  color: #cdd6f4 !important;
+  background: transparent;
+}
+
+/* 正则高亮 mark */
+mark {
+  background: rgba(137, 180, 250, 0.25);
+  color: inherit;
+}
