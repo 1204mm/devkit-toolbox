@@ -68,6 +68,7 @@ func NewApp() *App {
 // startup 应用启动时调用
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	totpMigrateLegacy()
 }
 
 // IsAdmin 检测是否管理员权限
@@ -686,7 +687,7 @@ type TOTPCode struct {
 	Remain int    `json:"remain"` // 当前周期剩余秒数
 }
 
-// totpExeDir 获取 exe 同级目录
+// totpExeDir 获取 exe 同级目录（旧版数据位置，用于迁移）
 func totpExeDir() string {
 	exe, err := os.Executable()
 	if err != nil {
@@ -696,14 +697,46 @@ func totpExeDir() string {
 	return filepath.Dir(exe)
 }
 
+// totpDataDir TOTP 数据目录：用户配置目录（%APPDATA%\DevKit）
+func totpDataDir() string {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return totpExeDir() // 获取失败时退回 exe 目录
+	}
+	return filepath.Join(base, "DevKit")
+}
+
 // totpStoragePath TOTP 密钥加密存储文件
 func totpStoragePath() string {
-	return filepath.Join(totpExeDir(), "totp.dat")
+	return filepath.Join(totpDataDir(), "totp.dat")
 }
 
 // totpKeyPath 密码校验文件（bcrypt 哈希）
 func totpKeyPath() string {
-	return filepath.Join(totpExeDir(), "totp.key")
+	return filepath.Join(totpDataDir(), "totp.key")
+}
+
+// totpMigrateLegacy 旧版把 TOTP 数据存在 exe 同目录，迁移到用户配置目录（每次启动检查，幂等）
+func totpMigrateLegacy() {
+	newDir := totpDataDir()
+	oldDir := totpExeDir()
+	if newDir == oldDir {
+		return
+	}
+	if err := os.MkdirAll(newDir, 0700); err != nil {
+		return
+	}
+	for _, name := range []string{"totp.dat", "totp.key"} {
+		newPath := filepath.Join(newDir, name)
+		if _, err := os.Stat(newPath); err == nil {
+			continue // 新位置已有数据，不覆盖
+		}
+		data, err := os.ReadFile(filepath.Join(oldDir, name))
+		if err != nil {
+			continue
+		}
+		_ = os.WriteFile(newPath, data, 0600)
+	}
 }
 
 // totpDeriveKey 从用户密码派生 AES 密钥

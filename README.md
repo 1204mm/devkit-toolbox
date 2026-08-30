@@ -120,4 +120,4 @@ powershell -ExecutionPolicy Bypass -File make-ico.ps1
 ## 📄 说明
 
 - 本工具仅操作本机进程与本地文件，JWT 解码、时间戳转换等均在纯前端完成，不发送任何数据
-- 2FA 密钥经主密码派生密钥加密后存储在 exe 同目录 `totp.dat`，忘记主密码无法恢复
+- 2FA 密钥经主密码派生密钥加密后存储在用户配置目录（`%APPDATA%\DevKit\totp.dat`），旧版本存放在 exe 同目录的数据会在启动时自动迁移，忘记主密码无法恢复
