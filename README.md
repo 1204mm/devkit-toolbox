@@ -117,10 +117,6 @@ powershell -ExecutionPolicy Bypass -File make-ico.ps1
 └── make-ico.ps1            # 图标重建脚本
 ```
 
-## 🙌 致谢
-
-「图标生成」功能合并自独立项目 [IconForge](https://github.com/1204mm)（同为 Wails + Vue3 构建，MIT 协议）。
-
 ## 📄 说明
 
 - 本工具仅操作本机进程与本地文件，JWT 解码、时间戳转换等均在纯前端完成，不发送任何数据
