@@ -268,8 +268,66 @@ func (a *App) KillPid(pid int32) error {
 	defer func() {
 		recover()
 	}()
+	return killProcessTree(pid)
+}
 
-	// 直接用 taskkill /F /T 强制杀死进程树，隐藏CMD窗口
+// KillPort 杀死占用指定端口的进程
+func (a *App) KillPort(port uint32) error {
+	defer func() {
+		recover()
+	}()
+	if port < 1 || port > 65535 {
+		return fmt.Errorf("端口号无效")
+	}
+	pids := findPidsByPort(port)
+	if len(pids) == 0 {
+		return fmt.Errorf("端口 %d 没有找到占用进程", port)
+	}
+	var errs []string
+	for _, pid := range pids {
+		if err := killProcessTree(pid); err != nil {
+			errs = append(errs, fmt.Sprintf("PID %d: %v", pid, err))
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "；"))
+	}
+	return nil
+}
+
+// findPidsByPort 查找占用指定端口的进程PID，优先返回监听中的，没有监听则返回其他占用的
+func findPidsByPort(port uint32) []int32 {
+	var listenPids, otherPids []int32
+	seenListen := make(map[int32]bool)
+	seenOther := make(map[int32]bool)
+	for _, proto := range []string{"tcp4", "tcp6"} {
+		conns, err := net.Connections(proto)
+		if err != nil {
+			continue
+		}
+		for _, conn := range conns {
+			if conn.Pid <= 0 || conn.Laddr.Port != port {
+				continue
+			}
+			if conn.Status == "LISTEN" {
+				if !seenListen[conn.Pid] {
+					seenListen[conn.Pid] = true
+					listenPids = append(listenPids, conn.Pid)
+				}
+			} else if !seenOther[conn.Pid] {
+				seenOther[conn.Pid] = true
+				otherPids = append(otherPids, conn.Pid)
+			}
+		}
+	}
+	if len(listenPids) > 0 {
+		return listenPids
+	}
+	return otherPids
+}
+
+// killProcessTree 用 taskkill /F /T 强制杀死进程树，隐藏CMD窗口
+func killProcessTree(pid int32) error {
 	cmd := exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprintf("%d", pid))
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	output, err := cmd.CombinedOutput()
@@ -279,9 +337,14 @@ func (a *App) KillPid(pid int32) error {
 		if strings.Contains(outStr, "not found") ||
 			strings.Contains(outStr, "找不到") ||
 			strings.Contains(outStr, "不存在") ||
-			strings.Contains(outStr, "ERROR") {
+			strings.Contains(outStr, "没有找到") {
 			// 进程可能已经退出，不算错误
 			return nil
+		}
+		// 权限不足（如系统进程），提示以管理员身份运行
+		if strings.Contains(outStr, "拒绝访问") ||
+			strings.Contains(outStr, "Access is denied") {
+			return fmt.Errorf("权限不足，无法结束该进程，请以管理员身份运行本程序后重试")
 		}
 		return fmt.Errorf("%s: %v", strings.TrimSpace(outStr), err)
 	}
