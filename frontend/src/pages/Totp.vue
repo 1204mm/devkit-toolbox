@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
+import { t } from '../i18n'
 import {
   TOTPGenerateAll, TOTPAddSecret, TOTPDeleteSecret,
   TOTPIsPasswordSet, TOTPSetupPassword, TOTPUnlock, TOTPIsUnlocked,
@@ -47,41 +48,41 @@ const checkAuth = async () => {
       }
     }
   } catch (e: unknown) {
-    message.error('初始化失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('totp.initFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const doPwdSubmit = async () => {
   if (!pwdInput.value) {
-    message.warning('请输入密码')
+    message.warning(t('totp.enterPwd'))
     return
   }
   try {
     if (pwdMode.value === 'setup') {
       if (pwdInput.value !== pwdConfirm.value) {
-        message.warning('两次密码不一致')
+        message.warning(t('totp.pwdMismatch'))
         return
       }
       if (pwdInput.value.length < 4) {
-        message.warning('密码至少4位')
+        message.warning(t('totp.pwdTooShort'))
         return
       }
       await TOTPSetupPassword(pwdInput.value)
-      message.success('密码设置成功')
+      message.success(t('totp.pwdSetOk'))
     } else {
       const ok = await TOTPUnlock(pwdInput.value)
       if (!ok) {
-        message.error('密码错误')
+        message.error(t('totp.pwdWrong'))
         return
       }
-      message.success('解锁成功')
+      message.success(t('totp.unlockedOk'))
     }
     pwdVisible.value = false
     unlocked.value = true
     await fetchCodes()
     startTimer()
   } catch (e: unknown) {
-    message.error('操作失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('totp.opFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -94,7 +95,7 @@ const fetchCodes = async () => {
       remain.value = codes.value[0].remain
     }
   } catch (e: unknown) {
-    message.error('获取验证码失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('totp.fetchFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -117,33 +118,33 @@ const showAdd = () => {
 
 const doAdd = async () => {
   if (!addName.value.trim() || !addSecret.value.trim()) {
-    message.warning('名称和密钥不能为空')
+    message.warning(t('totp.nameSecretRequired'))
     return
   }
   try {
     await TOTPAddSecret(addName.value.trim(), addSecret.value.trim(), addIssuer.value.trim())
-    message.success('添加成功')
+    message.success(t('totp.addedOk'))
     addVisible.value = false
     await fetchCodes()
   } catch (e: unknown) {
-    message.error('添加失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('totp.addFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const doDelete = (name: string) => {
   Modal.confirm({
-    title: '确认删除',
-    content: `确定要删除 ${name} 的密钥吗？`,
-    okText: '删除',
-    cancelText: '取消',
+    title: t('totp.deleteTitle'),
+    content: t('totp.deleteContent', { name }),
+    okText: t('totp.deleteOk'),
+    cancelText: t('port.cancel'),
     okButtonProps: { danger: true },
     onOk: async () => {
       try {
         await TOTPDeleteSecret(name)
-        message.success('已删除')
+        message.success(t('totp.deletedOk'))
         await fetchCodes()
       } catch (e: unknown) {
-        message.error('删除失败: ' + (e instanceof Error ? e.message : String(e)))
+        message.error(t('totp.deleteFailed') + (e instanceof Error ? e.message : String(e)))
       }
     },
   })
@@ -151,7 +152,7 @@ const doDelete = (name: string) => {
 
 const copyCode = (code: string) => {
   navigator.clipboard.writeText(code)
-  message.success('已复制: ' + code)
+  message.success(t('totp.copied') + code)
 }
 
 const remainPercent = () => {
@@ -177,15 +178,15 @@ onUnmounted(() => {
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
       </div>
-      <p class="lock-text">2FA 验证码已锁定</p>
-      <p class="lock-tip">输入密码以查看验证码</p>
+      <p class="lock-text">{{ t('totp.locked') }}</p>
+      <p class="lock-tip">{{ t('totp.lockTip') }}</p>
     </div>
 
     <!-- 已解锁显示列表 -->
     <template v-if="unlocked">
       <div class="toolbar">
-        <a-button type="primary" @click="showAdd">添加密钥</a-button>
-        <a-button @click="fetchCodes">刷新</a-button>
+        <a-button type="primary" @click="showAdd">{{ t('totp.add') }}</a-button>
+        <a-button @click="fetchCodes">{{ t('totp.refresh') }}</a-button>
         <div class="timer" v-if="codes.length > 0">
           <a-progress
             :percent="remainPercent()"
@@ -206,54 +207,54 @@ onUnmounted(() => {
           </div>
           <div class="code-value" @click="copyCode(item.code)">{{ item.code }}</div>
           <div class="code-actions">
-            <a-button size="small" type="text" danger @click="doDelete(item.name)">删除</a-button>
+            <a-button size="small" type="text" danger @click="doDelete(item.name)">{{ t('totp.delete') }}</a-button>
           </div>
         </div>
       </div>
 
       <div class="empty" v-else>
-        <p>暂无密钥，点击「添加密钥」开始</p>
-        <p class="tip">支持标准 TOTP（Google Authenticator 兼容）</p>
+        <p>{{ t('totp.empty') }}</p>
+        <p class="tip">{{ t('totp.tip') }}</p>
       </div>
     </template>
 
     <!-- 密码弹窗 -->
     <a-modal
       v-model:open="pwdVisible"
-      :title="pwdMode === 'setup' ? '设置密码' : '输入密码'"
-      :okText="pwdMode === 'setup' ? '设置' : '解锁'"
-      cancelText="取消"
+      :title="pwdMode === 'setup' ? t('totp.setPwd') : t('totp.inputPwd')"
+      :okText="pwdMode === 'setup' ? t('totp.setting') : t('totp.unlock')"
+      :cancelText="t('port.cancel')"
       @ok="doPwdSubmit"
       :maskClosable="false"
       :closable="false"
       :keyboard="false"
     >
       <div class="form-field">
-        <label>{{ pwdMode === 'setup' ? '设置访问密码' : '请输入密码' }}</label>
-        <a-input-password v-model:value="pwdInput" :placeholder="pwdMode === 'setup' ? '至少4位' : '访问密码'" @pressEnter="doPwdSubmit" />
+        <label>{{ pwdMode === 'setup' ? t('totp.setPwdLabel') : t('totp.pwdLabel') }}</label>
+        <a-input-password v-model:value="pwdInput" :placeholder="pwdMode === 'setup' ? t('totp.min4') : t('totp.accessPwd')" @pressEnter="doPwdSubmit" />
       </div>
       <div class="form-field" v-if="pwdMode === 'setup'">
-        <label>确认密码</label>
-        <a-input-password v-model:value="pwdConfirm" placeholder="再次输入密码" @pressEnter="doPwdSubmit" />
+        <label>{{ t('totp.confirmPwd') }}</label>
+        <a-input-password v-model:value="pwdConfirm" :placeholder="t('totp.confirmPwdPh')" @pressEnter="doPwdSubmit" />
       </div>
       <div class="pwd-tip" v-if="pwdMode === 'setup'">
-        密码用于加密 TOTP 密钥文件，忘记密码将无法恢复
+        {{ t('totp.pwdTip') }}
       </div>
     </a-modal>
 
     <!-- 添加密钥弹窗 -->
-    <a-modal v-model:open="addVisible" title="添加 TOTP 密钥" @ok="doAdd" okText="添加" cancelText="取消">
+    <a-modal v-model:open="addVisible" :title="t('totp.addTitle')" @ok="doAdd" :okText="t('totp.addOk')" :cancelText="t('port.cancel')">
       <div class="form-field">
-        <label>名称 *</label>
-        <a-input v-model:value="addName" placeholder="如：GitHub、Google" />
+        <label>{{ t('totp.nameLabel') }}</label>
+        <a-input v-model:value="addName" :placeholder="t('totp.namePh')" />
       </div>
       <div class="form-field">
-        <label>服务方</label>
-        <a-input v-model:value="addIssuer" placeholder="可选，如：GitHub Inc." />
+        <label>{{ t('totp.issuerLabel') }}</label>
+        <a-input v-model:value="addIssuer" :placeholder="t('totp.issuerPh')" />
       </div>
       <div class="form-field">
-        <label>密钥 *</label>
-        <a-input v-model:value="addSecret" placeholder="Base32 密钥，如：JBSWY3DPEHPK3PXP" />
+        <label>{{ t('totp.secretLabel') }}</label>
+        <a-input v-model:value="addSecret" :placeholder="t('totp.secretPh')" />
       </div>
     </a-modal>
   </div>

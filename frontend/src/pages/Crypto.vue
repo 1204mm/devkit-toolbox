@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
+import { t } from '../i18n'
 import {
   Hash, Hmac,
   BcryptHash, BcryptCompare,
@@ -16,7 +17,7 @@ const activeTab = ref('hash')
 // 通用复制
 const copyText = (text: string) => {
   navigator.clipboard.writeText(text)
-  message.success('已复制')
+  message.success(t('crypto.copied'))
 }
 
 // ========== 哈希 ==========
@@ -25,11 +26,11 @@ const hashResult = ref('')
 const hashAlgo = ref('MD5')
 
 const doHash = async () => {
-  if (!hashInput.value) { message.warning('请输入内容'); return }
+  if (!hashInput.value) { message.warning(t('crypto.input')); return }
   try {
     hashResult.value = await Hash(hashAlgo.value, hashInput.value)
   } catch (e: unknown) {
-    message.error('计算失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.hashFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -40,11 +41,11 @@ const hmacResult = ref('')
 const hmacAlgo = ref('SHA256')
 
 const doHmac = async () => {
-  if (!hmacInput.value || !hmacKey.value) { message.warning('请输入内容和密钥'); return }
+  if (!hmacInput.value || !hmacKey.value) { message.warning(t('crypto.inputKey')); return }
   try {
     hmacResult.value = await Hmac(hmacAlgo.value, hmacInput.value, hmacKey.value)
   } catch (e: unknown) {
-    message.error('计算失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.hashFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -55,21 +56,21 @@ const bcryptCost = ref(10)
 const bcryptResult = ref('')
 
 const doBcryptHash = async () => {
-  if (!bcryptPassword.value) { message.warning('请输入密码'); return }
+  if (!bcryptPassword.value) { message.warning(t('crypto.inputPwd')); return }
   try {
     bcryptResult.value = await BcryptHash(bcryptPassword.value, bcryptCost.value)
   } catch (e: unknown) {
-    message.error('加密失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.encFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const doBcryptCompare = async () => {
-  if (!bcryptPassword.value || !bcryptHashed.value) { message.warning('请输入密码和哈希值'); return }
+  if (!bcryptPassword.value || !bcryptHashed.value) { message.warning(t('crypto.inputPwdHash')); return }
   try {
     const ok = await BcryptCompare(bcryptPassword.value, bcryptHashed.value)
-    bcryptResult.value = ok ? '匹配: 密码正确' : '不匹配: 密码错误'
+    bcryptResult.value = ok ? t('crypto.resultMatch') : t('crypto.resultNotMatch')
   } catch (e: unknown) {
-    message.error('校验失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.verifyFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -79,20 +80,20 @@ const aesKey = ref('')
 const aesResult = ref('')
 
 const doAESEncrypt = async () => {
-  if (!aesInput.value || !aesKey.value) { message.warning('请输入内容和密钥'); return }
+  if (!aesInput.value || !aesKey.value) { message.warning(t('crypto.inputKey')); return }
   try {
     aesResult.value = await AESEncrypt(aesInput.value, aesKey.value)
   } catch (e: unknown) {
-    message.error('加密失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.encFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const doAESDecrypt = async () => {
-  if (!aesInput.value || !aesKey.value) { message.warning('请输入内容和密钥'); return }
+  if (!aesInput.value || !aesKey.value) { message.warning(t('crypto.inputKey')); return }
   try {
     aesResult.value = await AESDecrypt(aesInput.value, aesKey.value)
   } catch (e: unknown) {
-    message.error('解密失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.decFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -102,20 +103,20 @@ const desKey = ref('')
 const desResult = ref('')
 
 const doDesEncrypt = async () => {
-  if (!desInput.value || !desKey.value) { message.warning('请输入内容和密钥'); return }
+  if (!desInput.value || !desKey.value) { message.warning(t('crypto.inputKey')); return }
   try {
     desResult.value = await DesEncrypt(desInput.value, desKey.value)
   } catch (e: unknown) {
-    message.error('加密失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.encFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const doDesDecrypt = async () => {
-  if (!desInput.value || !desKey.value) { message.warning('请输入内容和密钥'); return }
+  if (!desInput.value || !desKey.value) { message.warning(t('crypto.inputKey')); return }
   try {
     desResult.value = await DesDecrypt(desInput.value, desKey.value)
   } catch (e: unknown) {
-    message.error('解密失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.decFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -127,27 +128,27 @@ const rsaResult = ref('')
 const doRSAGenKey = async () => {
   try {
     rsaResult.value = await RSAGenerateKey()
-    message.success('密钥对已生成')
+    message.success(t('crypto.keyPairGenerated'))
   } catch (e: unknown) {
-    message.error('生成失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.genFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const doRSAEncrypt = async () => {
-  if (!rsaInput.value || !rsaKey.value) { message.warning('请输入明文和公钥PEM'); return }
+  if (!rsaInput.value || !rsaKey.value) { message.warning(t('crypto.plainKey')); return }
   try {
     rsaResult.value = await RSAEncrypt(rsaInput.value, rsaKey.value)
   } catch (e: unknown) {
-    message.error('加密失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.encFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const doRSADecrypt = async () => {
-  if (!rsaInput.value || !rsaKey.value) { message.warning('请输入Base64密文和私钥PEM'); return }
+  if (!rsaInput.value || !rsaKey.value) { message.warning(t('crypto.cipherKey')); return }
   try {
     rsaResult.value = await RSADecrypt(rsaInput.value, rsaKey.value)
   } catch (e: unknown) {
-    message.error('解密失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.decFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
@@ -157,7 +158,7 @@ const codecResult = ref('')
 const codecMode = ref('base64')
 
 const doEncode = async () => {
-  if (!codecInput.value) { message.warning('请输入内容'); return }
+  if (!codecInput.value) { message.warning(t('crypto.input')); return }
   try {
     switch (codecMode.value) {
       case 'base64': codecResult.value = await Base64Encode(codecInput.value); break
@@ -165,12 +166,12 @@ const doEncode = async () => {
       case 'url': codecResult.value = await URLEncode(codecInput.value); break
     }
   } catch (e: unknown) {
-    message.error('编码失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.encodeFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const doDecode = async () => {
-  if (!codecInput.value) { message.warning('请输入内容'); return }
+  if (!codecInput.value) { message.warning(t('crypto.input')); return }
   try {
     switch (codecMode.value) {
       case 'base64': codecResult.value = await Base64Decode(codecInput.value); break
@@ -178,7 +179,7 @@ const doDecode = async () => {
       case 'url': codecResult.value = await URLDecode(codecInput.value); break
     }
   } catch (e: unknown) {
-    message.error('解码失败: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('crypto.decodeFailed') + (e instanceof Error ? e.message : String(e)))
   }
 }
 </script>
@@ -188,7 +189,7 @@ const doDecode = async () => {
     <a-tabs v-model:activeKey="activeTab" size="small">
 
       <!-- 哈希 -->
-      <a-tab-pane key="hash" tab="哈希">
+      <a-tab-pane key="hash" :tab="t('crypto.tabHash')">
         <div class="form-row">
           <a-select v-model:value="hashAlgo" style="width: 120px">
             <a-select-option value="MD5">MD5</a-select-option>
@@ -196,11 +197,11 @@ const doDecode = async () => {
             <a-select-option value="SHA256">SHA256</a-select-option>
             <a-select-option value="SHA512">SHA512</a-select-option>
           </a-select>
-          <a-button type="primary" @click="doHash">计算</a-button>
+          <a-button type="primary" @click="doHash">{{ t('crypto.calc') }}</a-button>
         </div>
-        <a-textarea v-model:value="hashInput" placeholder="输入要计算哈希的文本" :rows="5" class="input-area" />
+        <a-textarea v-model:value="hashInput" :placeholder="t('crypto.hashPlaceholder')" :rows="5" class="input-area" />
         <div class="result-wrap" v-if="hashResult">
-          <div class="result-label"><span>结果</span><a-button size="small" type="link" @click="copyText(hashResult)">复制</a-button></div>
+          <div class="result-label"><span>{{ t('crypto.result') }}</span><a-button size="small" type="link" @click="copyText(hashResult)">{{ t('crypto.copy') }}</a-button></div>
           <pre class="result-box">{{ hashResult }}</pre>
         </div>
       </a-tab-pane>
@@ -213,12 +214,12 @@ const doDecode = async () => {
             <a-select-option value="SHA512">HMAC-SHA512</a-select-option>
             <a-select-option value="MD5">HMAC-MD5</a-select-option>
           </a-select>
-          <a-button type="primary" @click="doHmac">计算</a-button>
+          <a-button type="primary" @click="doHmac">{{ t('crypto.calc') }}</a-button>
         </div>
-        <a-input v-model:value="hmacKey" placeholder="密钥" class="input-area" />
-        <a-textarea v-model:value="hmacInput" placeholder="输入要计算HMAC的文本" :rows="4" class="input-area" />
+        <a-input v-model:value="hmacKey" :placeholder="t('crypto.hmacKey')" class="input-area" />
+        <a-textarea v-model:value="hmacInput" :placeholder="t('crypto.hmacPlaceholder')" :rows="4" class="input-area" />
         <div class="result-wrap" v-if="hmacResult">
-          <div class="result-label"><span>结果</span><a-button size="small" type="link" @click="copyText(hmacResult)">复制</a-button></div>
+          <div class="result-label"><span>{{ t('crypto.result') }}</span><a-button size="small" type="link" @click="copyText(hmacResult)">{{ t('crypto.copy') }}</a-button></div>
           <pre class="result-box">{{ hmacResult }}</pre>
         </div>
       </a-tab-pane>
@@ -226,15 +227,15 @@ const doDecode = async () => {
       <!-- Bcrypt -->
       <a-tab-pane key="bcrypt" tab="Bcrypt">
         <div class="form-row">
-          <span class="form-label">强度：</span>
+          <span class="form-label">{{ t('crypto.cost') }}</span>
           <a-input-number v-model:value="bcryptCost" :min="4" :max="31" style="width: 80px" />
-          <a-button type="primary" @click="doBcryptHash">加密</a-button>
-          <a-button @click="doBcryptCompare">校验</a-button>
+          <a-button type="primary" @click="doBcryptHash">{{ t('crypto.encrypt') }}</a-button>
+          <a-button @click="doBcryptCompare">{{ t('crypto.verify') }}</a-button>
         </div>
-        <a-input-password v-model:value="bcryptPassword" placeholder="密码" class="input-area" />
-        <a-input v-model:value="bcryptHashed" placeholder="bcrypt 哈希值（校验时填写）" class="input-area" />
+        <a-input-password v-model:value="bcryptPassword" :placeholder="t('crypto.pwd')" class="input-area" />
+        <a-input v-model:value="bcryptHashed" :placeholder="t('crypto.bcryptHashPlaceholder')" class="input-area" />
         <div class="result-wrap" v-if="bcryptResult">
-          <div class="result-label"><span>结果</span><a-button size="small" type="link" @click="copyText(bcryptResult)">复制</a-button></div>
+          <div class="result-label"><span>{{ t('crypto.result') }}</span><a-button size="small" type="link" @click="copyText(bcryptResult)">{{ t('crypto.copy') }}</a-button></div>
           <pre class="result-box">{{ bcryptResult }}</pre>
         </div>
       </a-tab-pane>
@@ -242,13 +243,13 @@ const doDecode = async () => {
       <!-- AES -->
       <a-tab-pane key="aes" tab="AES">
         <div class="form-row">
-          <a-button type="primary" @click="doAESEncrypt">加密</a-button>
-          <a-button @click="doAESDecrypt">解密</a-button>
+          <a-button type="primary" @click="doAESEncrypt">{{ t('crypto.encrypt') }}</a-button>
+          <a-button @click="doAESDecrypt">{{ t('crypto.decrypt') }}</a-button>
         </div>
-        <a-input-password v-model:value="aesKey" placeholder="密钥（任意长度）" class="input-area" />
-        <a-textarea v-model:value="aesInput" placeholder="加密输入明文 / 解密输入Base64密文" :rows="4" class="input-area" />
+        <a-input-password v-model:value="aesKey" :placeholder="t('crypto.aesKey')" class="input-area" />
+        <a-textarea v-model:value="aesInput" :placeholder="t('crypto.aesPlaceholder')" :rows="4" class="input-area" />
         <div class="result-wrap" v-if="aesResult">
-          <div class="result-label"><span>结果</span><a-button size="small" type="link" @click="copyText(aesResult)">复制</a-button></div>
+          <div class="result-label"><span>{{ t('crypto.result') }}</span><a-button size="small" type="link" @click="copyText(aesResult)">{{ t('crypto.copy') }}</a-button></div>
           <pre class="result-box">{{ aesResult }}</pre>
         </div>
       </a-tab-pane>
@@ -256,13 +257,13 @@ const doDecode = async () => {
       <!-- DES -->
       <a-tab-pane key="des" tab="DES">
         <div class="form-row">
-          <a-button type="primary" @click="doDesEncrypt">加密</a-button>
-          <a-button @click="doDesDecrypt">解密</a-button>
+          <a-button type="primary" @click="doDesEncrypt">{{ t('crypto.encrypt') }}</a-button>
+          <a-button @click="doDesDecrypt">{{ t('crypto.decrypt') }}</a-button>
         </div>
-        <a-input-password v-model:value="desKey" placeholder="密钥（至少8位，不足自动补0）" class="input-area" />
-        <a-textarea v-model:value="desInput" placeholder="加密输入明文 / 解密输入Base64密文" :rows="4" class="input-area" />
+        <a-input-password v-model:value="desKey" :placeholder="t('crypto.desKey')" class="input-area" />
+        <a-textarea v-model:value="desInput" :placeholder="t('crypto.desPlaceholder')" :rows="4" class="input-area" />
         <div class="result-wrap" v-if="desResult">
-          <div class="result-label"><span>结果</span><a-button size="small" type="link" @click="copyText(desResult)">复制</a-button></div>
+          <div class="result-label"><span>{{ t('crypto.result') }}</span><a-button size="small" type="link" @click="copyText(desResult)">{{ t('crypto.copy') }}</a-button></div>
           <pre class="result-box">{{ desResult }}</pre>
         </div>
       </a-tab-pane>
@@ -270,32 +271,32 @@ const doDecode = async () => {
       <!-- RSA -->
       <a-tab-pane key="rsa" tab="RSA">
         <div class="form-row">
-          <a-button @click="doRSAGenKey">生成密钥对</a-button>
-          <a-button type="primary" @click="doRSAEncrypt">公钥加密</a-button>
-          <a-button @click="doRSADecrypt">私钥解密</a-button>
+          <a-button @click="doRSAGenKey">{{ t('crypto.genKeyPair') }}</a-button>
+          <a-button type="primary" @click="doRSAEncrypt">{{ t('crypto.pubEncrypt') }}</a-button>
+          <a-button @click="doRSADecrypt">{{ t('crypto.priDecrypt') }}</a-button>
         </div>
-        <a-textarea v-model:value="rsaKey" placeholder="公钥PEM（加密时）或 私钥PEM（解密时）" :rows="4" class="input-area" />
-        <a-textarea v-model:value="rsaInput" placeholder="加密输入明文 / 解密输入Base64密文" :rows="3" class="input-area" />
+        <a-textarea v-model:value="rsaKey" :placeholder="t('crypto.rsaKey')" :rows="4" class="input-area" />
+        <a-textarea v-model:value="rsaInput" :placeholder="t('crypto.rsaPlaceholder')" :rows="3" class="input-area" />
         <div class="result-wrap" v-if="rsaResult">
-          <div class="result-label"><span>结果</span><a-button size="small" type="link" @click="copyText(rsaResult)">复制</a-button></div>
+          <div class="result-label"><span>{{ t('crypto.result') }}</span><a-button size="small" type="link" @click="copyText(rsaResult)">{{ t('crypto.copy') }}</a-button></div>
           <pre class="result-box">{{ rsaResult }}</pre>
         </div>
       </a-tab-pane>
 
       <!-- 编解码 -->
-      <a-tab-pane key="codec" tab="编解码">
+      <a-tab-pane key="codec" :tab="t('crypto.tabCodec')">
         <div class="form-row">
           <a-radio-group v-model:value="codecMode">
             <a-radio-button value="base64">Base64</a-radio-button>
             <a-radio-button value="hex">Hex</a-radio-button>
             <a-radio-button value="url">URL</a-radio-button>
           </a-radio-group>
-          <a-button type="primary" @click="doEncode">编码</a-button>
-          <a-button @click="doDecode">解码</a-button>
+          <a-button type="primary" @click="doEncode">{{ t('crypto.encode') }}</a-button>
+          <a-button @click="doDecode">{{ t('crypto.decode') }}</a-button>
         </div>
-        <a-textarea v-model:value="codecInput" placeholder="输入要编码/解码的文本" :rows="5" class="input-area" />
+        <a-textarea v-model:value="codecInput" :placeholder="t('crypto.codecPlaceholder')" :rows="5" class="input-area" />
         <div class="result-wrap" v-if="codecResult">
-          <div class="result-label"><span>结果</span><a-button size="small" type="link" @click="copyText(codecResult)">复制</a-button></div>
+          <div class="result-label"><span>{{ t('crypto.result') }}</span><a-button size="small" type="link" @click="copyText(codecResult)">{{ t('crypto.copy') }}</a-button></div>
           <pre class="result-box">{{ codecResult }}</pre>
         </div>
       </a-tab-pane>

@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { message } from 'ant-design-vue'
 import { OpenImageDialog, ExportIcons } from '../../wailsjs/go/main/App'
+import { t, tErr } from '../i18n'
 
 /* ---------- 状态 ---------- */
 const imgInfo = ref(null)          // { name, width, height, dataUrl, detectedRadius, cornerDetected }
@@ -30,7 +31,7 @@ async function openImage() {
     const info = await OpenImageDialog()
     if (info) applyImage(info)
   } catch (e) {
-    message.error(String(typeof e === 'string' ? e : (e.message || e)))
+    message.error(String(tErr(typeof e === 'string' ? e : (e.message || e))))
   } finally {
     loading.value = false
   }
@@ -285,7 +286,7 @@ function toggleAll() {
 async function doExport() {
   if (!imgInfo.value || exporting.value) return
   if (selectedSizes.value.length === 0) {
-    message.warning('请至少选择一个 ICO 尺寸')
+    message.warning(t('ifg.needSelectSize'))
     return
   }
   exporting.value = true
@@ -299,10 +300,10 @@ async function doExport() {
       sizes: selectedSizes.value,
     })
     if (path) {
-      message.success('已保存: ' + path)
+      message.success(t('ifg.saved') + path)
     }
   } catch (e) {
-    message.error(String(typeof e === 'string' ? e : (e.message || e)))
+    message.error(String(tErr(typeof e === 'string' ? e : (e.message || e))))
   } finally {
     exporting.value = false
   }
@@ -323,7 +324,7 @@ onUnmounted(() => {
     <!-- 工具条 -->
     <div class="toolbar">
       <a-button type="primary" :loading="loading" @click="openImage">
-        {{ imgInfo ? '更换图片' : '选择图片' }}
+        {{ imgInfo ? t('ifg.changeImage') : t('ifg.selectImage') }}
       </a-button>
       <div v-if="imgInfo" class="file-meta">
         <span class="file-name" :title="imgInfo.name">{{ imgInfo.name }}</span>
@@ -339,10 +340,10 @@ onUnmounted(() => {
           <circle cx="9" cy="10" r="1.6"/>
           <path d="m21 16-4.5-4.5L7 21"/>
         </svg>
-        <div class="dz-title">点击选择图片</div>
-        <div class="dz-sub">支持 PNG / JPG / BMP / GIF，建议使用 256×256 以上正方形图片</div>
+        <div class="dz-title">{{ t('ifg.dzTitle') }}</div>
+        <div class="dz-sub">{{ t('ifg.dzSub') }}</div>
         <div class="dz-hint">
-          <span>自动识别圆角背景</span><i></i><span>手动裁剪</span><i></i><span>多尺寸 ICO 导出</span>
+          <span>{{ t('ifg.hintCorner') }}</span><i></i><span>{{ t('ifg.hintCrop') }}</span><i></i><span>{{ t('ifg.hintMulti') }}</span>
         </div>
       </div>
     </div>
@@ -358,7 +359,7 @@ onUnmounted(() => {
                   @pointerup="onPointerUp"></canvas>
         </div>
         <div class="preview-bar">
-          <span class="pb-label">尺寸预览</span>
+          <span class="pb-label">{{ t('ifg.sizePreview') }}</span>
           <div class="pb-items">
             <div v-for="(s, i) in PREVIEW_SIZES" :key="s" class="pb-item">
               <div class="pb-canvas checkerboard"><canvas :ref="el => previewRefs[i] = el"></canvas></div>
@@ -376,7 +377,7 @@ onUnmounted(() => {
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 8a4 4 0 0 1 4-4h12v12a4 4 0 0 1-4 4H4V8z"/>
             </svg>
-            <span>圆角切割</span>
+            <span>{{ t('ifg.cornerCut') }}</span>
             <label class="switch">
               <input type="checkbox" v-model="cornerOn">
               <span class="slider"></span>
@@ -387,20 +388,20 @@ onUnmounted(() => {
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/>
               </svg>
-              已自动识别圆角背景，建议半径 {{ imgInfo.detectedRadius }}px
+              {{ t('ifg.cornerDetected', { r: imgInfo.detectedRadius }) }}
               <button v-if="radius !== imgInfo.detectedRadius" class="link"
-                      @click="radius = Math.min(imgInfo.detectedRadius, maxRadius)">恢复</button>
+                      @click="radius = Math.min(imgInfo.detectedRadius, maxRadius)">{{ t('ifg.restore') }}</button>
             </div>
             <div v-else class="auto-badge dim">
-              未检测到圆角背景，请手动调整半径
+              {{ t('ifg.cornerNotDetected') }}
             </div>
             <div class="slider-row">
-              <span class="slider-label">半径</span>
+              <span class="slider-label">{{ t('ifg.radius') }}</span>
               <input type="range" min="0" :max="maxRadius" step="1" v-model.number="radius">
               <span class="slider-val">{{ radius }}px</span>
             </div>
           </template>
-          <p class="sec-tip">把圆角外的多余背景切除为透明，滑块向右切得更多</p>
+          <p class="sec-tip">{{ t('ifg.cornerTip') }}</p>
         </section>
 
         <!-- 手动裁剪 -->
@@ -410,11 +411,11 @@ onUnmounted(() => {
               <path d="M6 2v14a2 2 0 0 0 2 2h14"/>
               <path d="M18 22V8a2 2 0 0 0-2-2H2"/>
             </svg>
-            <span>正方形裁剪</span>
-            <span class="sec-badge">拖动画布调整位置</span>
+            <span>{{ t('ifg.squareCrop') }}</span>
+            <span class="sec-badge">{{ t('ifg.cropBadge') }}</span>
           </div>
           <div class="slider-row">
-            <span class="slider-label">边长</span>
+            <span class="slider-label">{{ t('ifg.side') }}</span>
             <input type="range" min="64" :max="minSide" step="1" v-model.number="crop.size"
                    @input="clampCrop(crop.x, crop.y)">
             <span class="slider-val">{{ crop.size }}px</span>
@@ -422,7 +423,7 @@ onUnmounted(() => {
           <div class="crop-xy">
             <span>X <b>{{ crop.x }}</b></span>
             <span>Y <b>{{ crop.y }}</b></span>
-            <button class="btn-mini" @click="centerCrop">居中</button>
+            <button class="btn-mini" @click="centerCrop">{{ t('ifg.center') }}</button>
           </div>
         </section>
 
@@ -435,8 +436,8 @@ onUnmounted(() => {
               <rect x="3" y="14" width="7" height="7" rx="1"/>
               <rect x="14" y="14" width="7" height="7" rx="1"/>
             </svg>
-            <span>ICO 尺寸</span>
-            <button class="link" @click="toggleAll">{{ allSelected ? '全不选' : '全选' }}</button>
+            <span>{{ t('ifg.icoSizes') }}</span>
+            <button class="link" @click="toggleAll">{{ allSelected ? t('ifg.deselectAll') : t('ifg.selectAll') }}</button>
           </div>
           <div class="size-grid">
             <label v-for="s in SIZE_OPTIONS" :key="s" class="size-chip" :class="{ on: sizeSel[s] }">
@@ -444,7 +445,7 @@ onUnmounted(() => {
               <span>{{ s }}×{{ s }}</span>
             </label>
           </div>
-          <p class="sec-tip">导出为 ZIP：含各尺寸独立 ICO（icon_16.ico…）+ 多尺寸合一的 icon.ico</p>
+          <p class="sec-tip">{{ t('ifg.exportTip') }}</p>
         </section>
 
         <!-- 导出 -->
@@ -456,7 +457,7 @@ onUnmounted(() => {
               <path d="M12 15V3"/>
             </svg>
             <span v-else class="spinner"></span>
-            {{ exporting ? '正在生成…' : '导出图标 ZIP' }}
+            {{ exporting ? t('ifg.exporting') : t('ifg.exportIconZip') }}
           </button>
         </div>
       </aside>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { message } from 'ant-design-vue'
+import { t } from '../../i18n'
 
 const count = ref(5)
 const noDash = ref(false)
@@ -34,12 +35,12 @@ const displayList = computed(() => {
 
 const copyOne = (v: string) => {
   navigator.clipboard.writeText(v)
-  message.success('已复制: ' + v)
+  message.success(t('uuid.copied') + v)
 }
 
 const copyAll = () => {
   navigator.clipboard.writeText(displayList.value.join('\n'))
-  message.success(`已复制 ${displayList.value.length} 个`)
+  message.success(t('uuid.copiedN', { n: displayList.value.length }))
 }
 
 generate()
@@ -48,15 +49,15 @@ generate()
 <template>
   <div class="tool">
     <div class="card">
-      <div class="card-title">UUID v4 批量生成</div>
+      <div class="card-title">{{ t('uuid.title') }}</div>
       <div class="controls">
-        <span class="ctl-label">数量</span>
+        <span class="ctl-label">{{ t('uuid.count') }}</span>
         <a-input-number v-model:value="count" :min="1" :max="500" :precision="0" style="width: 90px" @pressEnter="generate" />
-        <a-checkbox v-model:checked="noDash">去连字符</a-checkbox>
-        <a-checkbox v-model:checked="upper">大写</a-checkbox>
+        <a-checkbox v-model:checked="noDash">{{ t('uuid.noDash') }}</a-checkbox>
+        <a-checkbox v-model:checked="upper">{{ t('uuid.upper') }}</a-checkbox>
         <div class="spacer"></div>
-        <a-button @click="copyAll" :disabled="rawList.length === 0">复制全部</a-button>
-        <a-button type="primary" @click="generate">重新生成</a-button>
+        <a-button @click="copyAll" :disabled="rawList.length === 0">{{ t('uuid.copyAll') }}</a-button>
+        <a-button type="primary" @click="generate">{{ t('uuid.regenerate') }}</a-button>
       </div>
     </div>
 
@@ -65,7 +66,7 @@ generate()
         <span class="uuid-idx">{{ i + 1 }}</span>
         <span class="uuid-value mono">{{ u }}</span>
       </div>
-      <div class="copy-tip">点击单行复制</div>
+      <div class="copy-tip">{{ t('uuid.copyTip') }}</div>
     </div>
   </div>
 </template>

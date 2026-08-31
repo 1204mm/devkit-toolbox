@@ -2,14 +2,14 @@
   <img src="icon-1024-rounded.png" width="128" alt="DevKit" />
 </p>
 
-<h1 align="center">DevKit — Developer Toolbox for Windows</h1>
+<h1 align="center">DevKit - 程序员工具箱</h1>
 
 <p align="center">
-  A Windows desktop developer toolbox built with <a href="https://wails.io">Wails v2</a> (Go + Vue 3)
+  基于 <a href="https://wails.io">Wails v2</a> 构建的 Windows 桌面开发工具箱（Go + Vue 3）
 </p>
 
 <p align="center">
-  <a href="./README.zh-CN.md"><img alt="Chinese (简体中文)" src="https://img.shields.io/badge/中文文档-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-blue"></a>
+  <a href="./README.en.md"><img alt="English" src="https://img.shields.io/badge/English-Documentation-blue"></a>
   <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
   <img alt="Platform: Windows" src="https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6.svg">
   <img alt="Go" src="https://img.shields.io/badge/Go-1.25-00ADD8.svg">
@@ -17,105 +17,91 @@
   <img alt="Vue 3" src="https://img.shields.io/badge/Vue-3-42B883.svg">
 </p>
 
-> A battery-included toolbox featuring port management, cryptography utilities, TOTP 2FA,
-> JSON formatter, and an **icon generator with automatic rounded-corner detection**.
+> 一站式开发工具箱：端口管理、加密解密、TOTP 二次验证、JSON 格式化，以及**带圆角自动识别的图标生成器**。
 
----
+## ✨ 功能
 
-## ✨ Features
+### 🔌 端口管理
 
-### 🔌 Port Manager
+- 一键扫描本机所有监听端口（tcp4 / tcp6），自动识别 Java / Node / Nginx / Python 进程
+- 智能项目识别：自动提取 Java 主类、JAR 包名、Node 脚本名，一眼看出端口被哪个项目占用
+- 选中后强制杀死进程（`taskkill /F /T` 结束整个进程树）
+- 手动输入端口号，直接杀掉占用该端口的进程
+- 杀进程失败（权限不足）时才提示以管理员身份运行，不弹多余警告
 
-- Scan all listening ports in one click (`tcp4` / `tcp6`), with automatic identification of
-  Java / Node / Nginx / Python processes
-- Smart project detection: extracts the Java main class, JAR name, and Node script name so you
-  can see at a glance which project holds a port
-- Kill the selected process tree with a force-kill (`taskkill /F /T`)
-- Or type a port number to kill the process bound to it directly
-- Only prompts for administrator elevation when a kill actually fails due to insufficient
-  permissions — no noisy warnings
+### 🔐 加密解密
 
-### 🔐 Crypto & Encoding
+- 哈希：MD5 / SHA1 / SHA256 / SHA512
+- HMAC：HMAC-MD5 / HMAC-SHA256 / HMAC-SHA512
+- 对称加密：AES-CBC、DES-CBC（Base64 输入输出，IV 随机生成）
+- 非对称加密：RSA 2048 密钥生成 / 加密 / 解密
+- 编码转换：Base64、Hex、URL 编解码
+- 密码学哈希：bcrypt 生成与校验
 
-- **Hashing:** MD5 / SHA1 / SHA256 / SHA512
-- **HMAC:** HMAC-MD5 / HMAC-SHA256 / HMAC-SHA512
-- **Symmetric encryption:** AES-CBC, DES-CBC (Base64 in/out, random IV)
-- **Asymmetric encryption:** RSA 2048 key generation / encryption / decryption
-- **Encoding:** Base64, Hex, URL encode/decode
-- **Password hashing:** bcrypt generate & verify
+### 🔢 2FA 验证码
 
-### 🔢 2FA Authenticator
+- 标准 TOTP（RFC 6238），兼容 Google Authenticator
+- 主密码保护：密钥使用 AES 加密存储在本地（`totp.dat`），主密码经 bcrypt 校验
+- 验证码点击即复制，30 秒周期倒计时进度条
 
-- Standard TOTP (RFC 6238), compatible with Google Authenticator
-- Master-password protected: keys are AES-encrypted on disk (`totp.dat`), master password
-  verified with bcrypt
-- Click-to-copy codes, with a 30-second countdown progress ring
+### 📋 JSON 格式化
 
-### 📋 JSON Formatter
+- 格式化 / 压缩 / 校验，支持 2 / 4 空格缩进
+- 一键复制、输出一键回填输入
 
-- Format / minify / validate, with 2- or 4-space indentation
-- One-click copy and one-click fill-output-back-into-input
+### 🖼 IconForge — 图标生成
 
-### 🖼 IconForge — Icon Generator
+- PNG / JPG / BMP / GIF 一键转多尺寸 ICO（16 ~ 256px 自由勾选）
+- **圆角自动识别**：自动检测图片四角的多余背景（如带浅色圆角外框的图标图），一键切除为透明，滑块微调半径
+- 正方形裁剪：拖拽画布调整裁剪区域，实时多尺寸预览
+- 圆角切割基于带符号距离场（SDF）抗锯齿蒙版，边缘平滑无锯齿；Lanczos 高质量缩放
+- 导出 ZIP：各尺寸独立 ICO + 多尺寸合一 `icon.ico` 一次打包
 
-- Convert PNG / JPG / BMP / GIF to multi-size ICO in one go (select any of 16 ~ 256 px)
-- **Automatic rounded-corner detection:** detects and cuts away excess background around the
-  corners of the source image (e.g. icons with a pale rounded outer frame) into transparency,
-  with a slider to fine-tune the radius
-- **Square cropping:** drag on the canvas to adjust the crop area, with live multi-size preview
-- Rounded-corner cutting uses a signed-distance-field (SDF) anti-aliased mask for smooth
-  edges, plus high-quality Lanczos scaling
-- **ZIP export:** every selected size as its own `.ico` **plus** an all-in-one `icon.ico`,
-  packaged together
+### 🧰 常用工具
 
-### 🧰 Common Utilities
+| 工具 | 说明 |
+|------|------|
+| 时间戳转换 | 当前时间戳实时显示（点击复制）；Unix 秒/毫秒自动识别 ↔ 本地时间 / 星期 / ISO 8601 / UTC；日期字符串 ↔ 时间戳 |
+| JWT 解码 | 纯本地解码 Header / Payload，`exp` 过期状态实时提示（有效剩余时长 / 已过期），时间声明字段高亮，支持 Bearer 前缀 |
+| Cron 表达式 | 支持标准 5 段与 Quartz 6~7 段（`?`、`L`、`#`、`MON-FRI`、年份字段），中文语义描述 + 最近 5 次执行时间 + 字段拆解 |
+| UUID 生成 | 批量生成 v4 UUID（1~500 个），支持去连字符 / 大写，单条点击复制 |
+| 正则测试 | 实时高亮匹配，g / i / m / s / u 标志，匹配详情含捕获组与位置区间 |
 
-| Tool | Description |
-|------|-------------|
-| Timestamp converter | Live timestamp display (click to copy); auto-detect Unix sec/ms ↔ local time / weekday / ISO 8601 / UTC; date-string ↔ timestamp |
-| JWT decoder | Fully local Header/Payload decode, live `exp` status (remaining time / expired), highlighted time claims, Bearer prefix support |
-| Cron expression | Standard 5-field and Quartz 6~7-field (`?`, `L`, `#`, `MON-FRI`, year field), with Chinese semantic descriptions + next 5 run times + field breakdown |
-| UUID generator | Batch v4 UUIDs (1–500), with un-dashed / uppercase options, click-to-copy |
-| Regex tester | Live match highlighting, g / i / m / s / u flags, match details with capture groups & ranges |
+## 🛠 技术栈
 
-## 🛠 Tech Stack
+| 层 | 技术 |
+|----|------|
+| 桌面框架 | [Wails v2](https://wails.io) |
+| 后端 | Go（[gopsutil](https://github.com/shirou/gopsutil) 读取端口与进程，[imaging](https://github.com/disintegration/imaging) 图像处理） |
+| 前端 | Vue 3 + TypeScript + Vite |
+| UI | Ant Design Vue 4（Catppuccin Mocha 深色主题定制） |
+| Cron 解析 | [cron-parser](https://github.com/pentestfunctions/cron-parser) + [cronstrue](https://github.com/bradymholt/cronstrue)（中文描述） |
+| 图标算法 | 圆角识别（对角线/边缘扫描 + 最小二乘圆拟合）、SDF 抗锯齿蒙版、Lanczos 缩放、ICO 编码（BMP+PNG 双格式），含单元测试 |
 
-| Layer | Technology |
-|-------|------------|
-| Desktop framework | [Wails v2](https://wails.io) |
-| Backend | Go ([gopsutil](https://github.com/shirou/gopsutil) for ports & processes, [imaging](https://github.com/disintegration/imaging) for image processing) |
-| Frontend | Vue 3 + TypeScript + Vite |
-| UI | Ant Design Vue 4 (Catppuccin Mocha dark theme) |
-| Cron parsing | [cron-parser](https://github.com/pentestfunctions/cron-parser) + [cronstrue](https://github.com/bradymholt/cronstrue) |
-| Icon algorithms | corner detection (diagonal/edge scan + least-squares arc fitting), SDF anti-aliased mask, Lanczos scaling, ICO encoding (BMP + PNG dual format), with unit tests |
+## 🚀 开发与构建
 
-## 🚀 Development & Build
-
-Requirements: Go 1.21+, Node.js 18+, [Wails CLI](https://wails.io/docs/gettingstarted/installation) v2. **Windows only.**
+环境要求：Go 1.21+、Node.js 18+、[Wails CLI](https://wails.io/docs/gettingstarted/installation) v2，仅支持 Windows。
 
 ```bash
-# Install the Wails CLI
+# 安装 Wails CLI
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-# Development mode (front-end hot reload)
+# 开发模式（前端热重载）
 wails dev
 
-# Production build → build/bin/portmanager.exe
+# 生产构建，输出 build/bin/portmanager.exe
 wails build
 ```
 
-## ⬇️ Download
+## ⬇️ 下载
 
-Grab the latest build from the **[Releases](https://github.com/1204mm/devkit-toolbox/releases)** page (all-in-one `portmanager.exe`, no installation required).
+前往 **[Releases](https://github.com/1204mm/devkit-toolbox/releases)** 页面获取最新版本（单文件 `portmanager.exe`，免安装）。
 
-## 📄 Notes
+## 📄 说明
 
-- Everything runs locally — port scanning, file/process operations, JWT decode, and timestamp
-  conversion are all handled on-device. **No data leaves your machine.**
-- 2FA keys are encrypted with a key derived from your master password and stored in the user
-  config directory (`%APPDATA%\DevKit\totp.dat`). Data stored next to the old exe is migrated
-  automatically on startup. **If you forget the master password, your keys cannot be recovered.**
+- 本工具仅操作本机进程与本地文件，JWT 解码、时间戳转换等均在纯前端完成，不发送任何数据
+- 2FA 密钥经主密码派生密钥加密后存储在用户配置目录（`%APPDATA%\DevKit\totp.dat`），旧版本存放在 exe 同目录的数据会在启动时自动迁移，忘记主密码无法恢复
 
-## 📄 License
+## 📄 开源协议
 
-Released under the [MIT License](./LICENSE). © 2026 1204mm.
+基于 [MIT License](./LICENSE) 发布。© 2026 1204mm。

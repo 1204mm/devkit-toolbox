@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { t } from '../../i18n'
 
 const token = ref('')
 const nowMs = ref(Date.now())
@@ -35,14 +36,14 @@ const decodeResult = computed<DecodeResult>(() => {
   if (!raw) return { header: null, payload: null, signature: '', error: '' }
   const parts = raw.split('.')
   if (parts.length < 2 || parts.length > 3 || parts[0] === '' || parts[1] === '') {
-    return { header: null, payload: null, signature: '', error: '不是有效的 JWT（格式应为 header.payload.signature）' }
+    return { header: null, payload: null, signature: '', error: t('jwt.invalid') }
   }
   try {
     const header = JSON.parse(b64urlDecode(parts[0]))
     const payload = JSON.parse(b64urlDecode(parts[1]))
     return { header, payload, signature: parts[2] || '', error: '' }
   } catch {
-    return { header: null, payload: null, signature: '', error: '解码失败：header/payload 不是有效的 Base64URL JSON' }
+    return { header: null, payload: null, signature: '', error: t('jwt.decodeFailed') }
   }
 })
 
@@ -76,10 +77,10 @@ const humanDelta = (deltaMs: number): string => {
   const hour = Math.floor((abs % 86400000) / 3600000)
   const min = Math.floor((abs % 3600000) / 60000)
   const sec = Math.floor((abs % 60000) / 1000)
-  if (day > 0) return `${day} 天 ${hour} 小时`
-  if (hour > 0) return `${hour} 小时 ${min} 分`
-  if (min > 0) return `${min} 分 ${sec} 秒`
-  return `${sec} 秒`
+  if (day > 0) return t('jwt.daysHours', { day, hour })
+  if (hour > 0) return t('jwt.hoursMins', { hour, min })
+  if (min > 0) return t('jwt.minsSecs', { min, sec })
+  return t('jwt.secs', { sec })
 }
 
 const claims = computed<ClaimInfo[]>(() => {
@@ -87,9 +88,9 @@ const claims = computed<ClaimInfo[]>(() => {
   if (!p) return []
   const out: ClaimInfo[] = []
   const defs: Array<[string, string, ClaimInfo['state'] | 'auto']> = [
-    ['nbf', '生效时间 (nbf)', 'pending'],
-    ['iat', '签发时间 (iat)', 'ok'],
-    ['exp', '过期时间 (exp)', 'auto'],
+    ['nbf', t('jwt.claimNbf'), 'pending'],
+    ['iat', t('jwt.claimIat'), 'ok'],
+    ['exp', t('jwt.claimExp'), 'auto'],
   ]
   for (const [key, label, defaultState] of defs) {
     const v = p[key]
@@ -100,14 +101,14 @@ const claims = computed<ClaimInfo[]>(() => {
     if (key === 'exp') {
       if (ms > nowMs.value) {
         state = 'ok'
-        desc = `有效 · 剩余 ${humanDelta(ms - nowMs.value)}`
+        desc = t('jwt.validLeft', { delta: humanDelta(ms - nowMs.value) })
       } else {
         state = 'expired'
-        desc = `已过期 ${humanDelta(nowMs.value - ms)}`
+        desc = t('jwt.expiredAgo', { delta: humanDelta(nowMs.value - ms) })
       }
     } else if (key === 'nbf') {
       state = ms <= nowMs.value ? 'ok' : 'pending'
-      desc = ms <= nowMs.value ? '已生效' : `${humanDelta(ms - nowMs.value)}后生效`
+      desc = ms <= nowMs.value ? t('jwt.effective') : t('jwt.effectiveIn', { delta: humanDelta(ms - nowMs.value) })
     }
     out.push({ key, label, ms, desc, state })
   }
@@ -122,7 +123,7 @@ const alg = computed(() => {
 
 const sigShort = computed(() => {
   const s = decodeResult.value.signature
-  if (!s) return '无签名（alg: none）'
+  if (!s) return t('jwt.noSig')
   return s.length > 28 ? s.slice(0, 28) + '…' : s
 })
 </script>
@@ -130,10 +131,10 @@ const sigShort = computed(() => {
 <template>
   <div class="tool">
     <div class="card">
-      <div class="card-title">粘贴 JWT（自动解码，支持 Bearer 前缀）</div>
+      <div class="card-title">{{ t('jwt.title') }}</div>
       <a-textarea
         v-model:value="token"
-        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NSIsIm5hbWUiOiJ0ZXN0In0.xxx"
+        :placeholder="t('jwt.jwtPlaceholder')"
         :rows="4"
         class="mono"
       />
@@ -144,7 +145,7 @@ const sigShort = computed(() => {
       <!-- 过期状态卡 -->
       <div class="card" v-if="expState">
         <div class="exp-banner" :class="expState.state">
-          <span class="exp-state">{{ expState.state === 'ok' ? '✓ Token 有效' : '✗ Token 已过期' }}</span>
+          <span class="exp-state">{{ expState.state === 'ok' ? t('jwt.valid') : t('jwt.expired') }}</span>
           <span class="exp-desc">{{ expState.desc }}</span>
         </div>
         <div class="result-row" v-for="c in claims" :key="c.key">
@@ -159,7 +160,7 @@ const sigShort = computed(() => {
       <div class="pair">
         <div class="card half">
           <div class="card-title">
-            Header
+            {{ t('jwt.header') }}
             <a-tag v-if="alg" color="blue" class="alg-tag">{{ alg }}</a-tag>
           </div>
           <pre class="code-block"><span
@@ -170,7 +171,7 @@ const sigShort = computed(() => {
 </span></pre>
         </div>
         <div class="card half">
-          <div class="card-title">Payload</div>
+          <div class="card-title">{{ t('jwt.payload') }}</div>
           <pre class="code-block"><span
             v-for="(line, i) in payloadJson.split('\n')"
             :key="i"
@@ -181,13 +182,13 @@ const sigShort = computed(() => {
       </div>
 
       <div class="card">
-        <div class="card-title">Signature（不校验签名，仅展示）</div>
+        <div class="card-title">{{ t('jwt.sigTitle') }}</div>
         <div class="sig mono">{{ sigShort }}</div>
       </div>
     </template>
     <div class="empty" v-else-if="!decodeResult.error">
-      <p>粘贴任意 JWT 后自动解码</p>
-      <p class="tip2">解码在本地完成，不会发送任何数据</p>
+      <p>{{ t('jwt.empty') }}</p>
+      <p class="tip2">{{ t('jwt.localOnly') }}</p>
     </div>
   </div>
 </template>

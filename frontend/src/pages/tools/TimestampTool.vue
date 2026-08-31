@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
+import dayjs from 'dayjs'
+import { t } from '../../i18n'
 
 // ===================== 当前时间戳 =====================
 const nowSec = ref(0)
@@ -23,7 +25,7 @@ onUnmounted(() => {
 
 const copyText = (v: string | number) => {
   navigator.clipboard.writeText(String(v))
-  message.success('已复制: ' + v)
+  message.success(t('ts.copied') + v)
 }
 
 // ===================== 通用格式化 =====================
@@ -62,8 +64,8 @@ const tsResult = computed<Date | null>(() => {
 
 const unitTip = computed(() => {
   if (tsInput.value.trim() === '') return ''
-  if (detectedUnit.value === null) return '请输入纯数字时间戳'
-  return `已按 ${detectedUnit.value === 's' ? '秒' : '毫秒'} 解析`
+  if (detectedUnit.value === null) return t('ts.enterDigits')
+  return t('ts.parsedAs', { unit: detectedUnit.value === 's' ? t('ts.sec') : t('ts.ms') })
 })
 
 // ===================== 日期 -> 时间戳 =====================
@@ -82,7 +84,7 @@ const parsedDate = computed<Date | null>(() => {
 
 const dateTip = computed(() => {
   if (dateInput.value.trim() === '') return ''
-  return parsedDate.value ? '' : '无法解析，支持 2026-08-29 15:30:00 / 2026-08-29T15:30:00+08:00 等格式'
+  return parsedDate.value ? '' : t('ts.unparseable')
 })
 
 const fillNow = () => {
@@ -100,66 +102,66 @@ const fillTodayStart = () => {
     <!-- 当前时间戳 -->
     <div class="card">
       <div class="card-title">
-        当前时间戳
+        {{ t('ts.current') }}
         <span class="live-dot"></span>
       </div>
       <div class="now-row">
         <div class="now-box" @click="copyText(nowSec)">
-          <div class="now-label">秒（10位）</div>
+          <div class="now-label">{{ t('ts.sec10') }}</div>
           <div class="now-value">{{ nowSec }}</div>
         </div>
         <div class="now-box" @click="copyText(nowMs)">
-          <div class="now-label">毫秒（13位）</div>
+          <div class="now-label">{{ t('ts.ms13') }}</div>
           <div class="now-value">{{ nowMs }}</div>
         </div>
       </div>
-      <div class="now-time">{{ formatLocal(new Date(nowMs)) }} · 点击复制</div>
+      <div class="now-time">{{ formatLocal(new Date(nowMs)) }} {{ t('ts.clickCopy') }}</div>
     </div>
 
     <!-- 时间戳 -> 日期 -->
     <div class="card">
-      <div class="card-title">时间戳 → 日期</div>
+      <div class="card-title">{{ t('ts.toDate') }}</div>
       <div class="input-row">
         <a-input
           v-model:value="tsInput"
-          placeholder="粘贴时间戳，如 1787000000 或 1787000000000"
+          :placeholder="t('ts.tsPlaceholder')"
           class="mono"
           allow-clear
         />
         <a-radio-group v-model:value="tsUnit" size="small" class="unit-group">
-          <a-radio-button value="auto">自动</a-radio-button>
-          <a-radio-button value="s">秒</a-radio-button>
-          <a-radio-button value="ms">毫秒</a-radio-button>
+          <a-radio-button value="auto">{{ t('ts.auto') }}</a-radio-button>
+          <a-radio-button value="s">{{ t('ts.sec') }}</a-radio-button>
+          <a-radio-button value="ms">{{ t('ts.ms') }}</a-radio-button>
         </a-radio-group>
       </div>
       <div class="tip" :class="{ err: detectedUnit === null && tsInput.trim() !== '' }">{{ unitTip }}</div>
       <template v-if="tsResult">
-        <div class="result-row"><span class="rk">本地时间</span><span class="rv hl" @click="copyText(formatLocal(tsResult))">{{ formatLocal(tsResult) }}</span></div>
-        <div class="result-row"><span class="rk">星期</span><span class="rv">周{{ '日一二三四五六'[tsResult.getDay()] }}</span></div>
-        <div class="result-row"><span class="rk">ISO 8601</span><span class="rv" @click="copyText(formatIso(tsResult))">{{ formatIso(tsResult) }}</span></div>
-        <div class="result-row"><span class="rk">UTC 时间</span><span class="rv">{{ formatUtc(tsResult) }}</span></div>
+        <div class="result-row"><span class="rk">{{ t('ts.local') }}</span><span class="rv hl" @click="copyText(formatLocal(tsResult))">{{ formatLocal(tsResult) }}</span></div>
+        <div class="result-row"><span class="rk">{{ t('ts.week') }}</span><span class="rv">{{ dayjs(tsResult).format('ddd') }}</span></div>
+        <div class="result-row"><span class="rk">{{ t('ts.iso') }}</span><span class="rv" @click="copyText(formatIso(tsResult))">{{ formatIso(tsResult) }}</span></div>
+        <div class="result-row"><span class="rk">{{ t('ts.utc') }}</span><span class="rv">{{ formatUtc(tsResult) }}</span></div>
       </template>
     </div>
 
     <!-- 日期 -> 时间戳 -->
     <div class="card">
       <div class="card-title">
-        日期 → 时间戳
+        {{ t('ts.toTs') }}
         <span class="quick">
-          <a @click="fillNow">现在</a>
-          <a @click="fillTodayStart">今天零点</a>
+          <a @click="fillNow">{{ t('ts.now') }}</a>
+          <a @click="fillTodayStart">{{ t('ts.todayStart') }}</a>
         </span>
       </div>
       <a-input
         v-model:value="dateInput"
-        placeholder="如 2026-08-29 15:30:00 或 2026-08-29T15:30:00+08:00"
+        :placeholder="t('ts.datePlaceholder')"
         class="mono"
         allow-clear
       />
-      <div class="tip" :class="{ err: dateTip !== '' }">{{ dateTip || '支持带/不带时区的格式，不带时区按本地时间解析' }}</div>
+      <div class="tip" :class="{ err: dateTip !== '' }">{{ dateTip || t('ts.dateParseTip') }}</div>
       <template v-if="parsedDate">
-        <div class="result-row"><span class="rk">秒（10位）</span><span class="rv hl" @click="copyText(Math.floor(parsedDate.getTime() / 1000))">{{ Math.floor(parsedDate.getTime() / 1000) }}</span></div>
-        <div class="result-row"><span class="rk">毫秒（13位）</span><span class="rv hl" @click="copyText(parsedDate.getTime())">{{ parsedDate.getTime() }}</span></div>
+        <div class="result-row"><span class="rk">{{ t('ts.sec10') }}</span><span class="rv hl" @click="copyText(Math.floor(parsedDate.getTime() / 1000))">{{ Math.floor(parsedDate.getTime() / 1000) }}</span></div>
+        <div class="result-row"><span class="rk">{{ t('ts.ms13') }}</span><span class="rv hl" @click="copyText(parsedDate.getTime())">{{ parsedDate.getTime() }}</span></div>
       </template>
     </div>
   </div>

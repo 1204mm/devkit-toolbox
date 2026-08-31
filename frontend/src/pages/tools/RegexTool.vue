@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { t } from '../../i18n'
 
 const patternInput = ref('\\d{4}-\\d{2}-\\d{2}')
 const testText = ref('上线日期: 2026-08-29, 截止日期: 2026-09-15, 版本 v2.3.1')
@@ -30,7 +31,7 @@ const compiled = computed<CompileResult>(() => {
   try {
     return { re: new RegExp(cleanPattern.value, flagStr.value), error: '' }
   } catch (e: unknown) {
-    return { re: null, error: '正则语法错误: ' + (e instanceof Error ? e.message : String(e)) }
+    return { re: null, error: t('regex.syntaxErr') + (e instanceof Error ? e.message : String(e)) }
   }
 })
 
@@ -101,25 +102,25 @@ const segments = computed<Segment[]>(() => {
 <template>
   <div class="tool">
     <div class="card">
-      <div class="card-title">正则表达式</div>
+      <div class="card-title">{{ t('regex.title') }}</div>
       <div class="pattern-row">
         <span class="slash">/</span>
         <input v-model="patternInput" class="pattern-input mono" spellcheck="false" />
         <span class="slash">/{{ flagStr }}</span>
       </div>
       <div class="flags">
-        <a-checkbox v-model:checked="flags.g">g 全局</a-checkbox>
-        <a-checkbox v-model:checked="flags.i">i 忽略大小写</a-checkbox>
-        <a-checkbox v-model:checked="flags.m">m 多行</a-checkbox>
-        <a-checkbox v-model:checked="flags.s">s dotAll</a-checkbox>
-        <a-checkbox v-model:checked="flags.u">u Unicode</a-checkbox>
-        <span class="match-count" v-if="compiled.re">共 {{ matches.length }} 处匹配</span>
+        <a-checkbox v-model:checked="flags.g">{{ t('regex.g') }}</a-checkbox>
+        <a-checkbox v-model:checked="flags.i">{{ t('regex.i') }}</a-checkbox>
+        <a-checkbox v-model:checked="flags.m">{{ t('regex.m') }}</a-checkbox>
+        <a-checkbox v-model:checked="flags.s">{{ t('regex.s') }}</a-checkbox>
+        <a-checkbox v-model:checked="flags.u">{{ t('regex.u') }}</a-checkbox>
+        <span class="match-count" v-if="compiled.re">{{ t('regex.count', { n: matches.length }) }}</span>
       </div>
       <div class="error" v-if="compiled.error">{{ compiled.error }}</div>
     </div>
 
     <div class="card">
-      <div class="card-title">测试文本</div>
+      <div class="card-title">{{ t('regex.testText') }}</div>
       <a-textarea v-model:value="testText" :rows="5" class="mono" />
       <div class="highlight-box mono" v-if="testText">
         <template v-for="(seg, i) in segments" :key="i">
@@ -130,13 +131,13 @@ const segments = computed<Segment[]>(() => {
     </div>
 
     <div class="card" v-if="matches.length">
-      <div class="card-title">匹配详情</div>
+      <div class="card-title">{{ t('regex.details') }}</div>
       <div class="match-row" v-for="(m, i) in matches" :key="i">
         <span class="m-idx">{{ i + 1 }}</span>
         <span class="m-text mono">{{ m.text }}</span>
         <span class="m-pos">[{{ m.start }}, {{ m.end }})</span>
         <span class="m-groups" v-if="m.groups.length">
-          组: <code v-for="(g, gi) in m.groups" :key="gi" class="mono">${{ gi + 1 }}={{ g }}</code>
+          {{ t('regex.group') }}<code v-for="(g, gi) in m.groups" :key="gi" class="mono">${{ gi + 1 }}={{ g }}</code>
         </span>
       </div>
     </div>

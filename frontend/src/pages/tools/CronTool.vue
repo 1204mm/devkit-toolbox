@@ -3,17 +3,19 @@ import { ref, computed } from 'vue'
 import { CronExpressionParser } from 'cron-parser'
 import cronstrue from 'cronstrue'
 import 'cronstrue/locales/zh_CN'
+import dayjs from 'dayjs'
+import { t, isZh } from '../../i18n'
 
 const expr = ref('0 0/30 9-18 * * MON-FRI')
 
-const EXAMPLES: Array<[string, string]> = [
-  ['0 0/5 * * * ?', '每 5 分钟'],
-  ['0 0 2 * * ?', '每天凌晨 2 点'],
-  ['0 0 9-18 * * MON-FRI', '工作日 9-18 点整点'],
-  ['0 30 9 ? * 6#3', '每月第 3 个周六 9:30'],
-  ['0 0 12 L * ?', '每月最后一天中午 12 点'],
-  ['*/10 * * * *', '每 10 分钟（标准5段）'],
-]
+const EXAMPLES = computed<Array<[string, string]>>(() => [
+  ['0 0/5 * * * ?', t('cron.e1')],
+  ['0 0 2 * * ?', t('cron.e2')],
+  ['0 0 9-18 * * MON-FRI', t('cron.e3')],
+  ['0 30 9 ? * 6#3', t('cron.e4')],
+  ['0 0 12 L * ?', t('cron.e5')],
+  ['*/10 * * * *', t('cron.e6')],
+])
 
 interface FieldDef {
   label: string
@@ -29,9 +31,8 @@ interface ParseResult {
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
-const WEEK = ['日', '一', '二', '三', '四', '五', '六']
 const formatRun = (d: Date) =>
-  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} 周${WEEK[d.getDay()]}`
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${dayjs(d).format('ddd')}`
 
 // 解析 Quartz 年份字段（第7段）：支持 2026 / 2026,2028 / 2026-2028
 const parseYears = (field: string): Set<number> | null => {
@@ -57,7 +58,7 @@ const result = computed<ParseResult>(() => {
   if (parts.length < 5 || parts.length > 7) {
     return {
       fields: [], description: '', nextRuns: [],
-      error: `字段数量错误：${parts.length} 段。标准 cron 为 5 段（分 时 日 月 周），Quartz 为 6~7 段（秒 分 时 日 月 周 [年]）`,
+      error: t('cron.fieldCountErr', { n: parts.length }),
       yearFiltered: false,
     }
   }
@@ -67,7 +68,7 @@ const result = computed<ParseResult>(() => {
   if (parts.length === 7) {
     years = parseYears(parts[6])
     if (!years) {
-      return { fields: [], description: '', nextRuns: [], error: `无法解析年份字段「${parts[6]}」`, yearFiltered: false }
+      return { fields: [], description: '', nextRuns: [], error: t('cron.yearErr', { field: parts[6] }), yearFiltered: false }
     }
     parts = parts.slice(0, 6)
   }
@@ -76,8 +77,8 @@ const result = computed<ParseResult>(() => {
   // 字段说明
   const labels =
     parts.length === 6
-      ? ['秒', '分', '时', '日', '月', '周']
-      : ['分', '时', '日', '月', '周']
+      ? [t('cron.fSec'), t('cron.fMin'), t('cron.fHour'), t('cron.fDay'), t('cron.fMonth'), t('cron.fWeek')]
+      : [t('cron.fMin'), t('cron.fHour'), t('cron.fDay'), t('cron.fMonth'), t('cron.fWeek')]
   const fields: FieldDef[] = parts.map((v, i) => ({ label: labels[i], value: v }))
 
   try {
@@ -94,14 +95,14 @@ const result = computed<ParseResult>(() => {
     }
     let description = ''
     try {
-      description = cronstrue.toString(parseExpr, { locale: 'zh_CN' })
+      description = cronstrue.toString(parseExpr, { locale: isZh.value ? 'zh_CN' : 'en' })
     } catch {
       description = ''
     }
     return { fields, description, nextRuns, error: '', yearFiltered }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
-    return { fields, description: '', nextRuns: [], error: '表达式无效: ' + msg, yearFiltered: false }
+    return { fields, description: '', nextRuns: [], error: t('cron.invalid') + msg, yearFiltered: false }
   }
 })
 </script>
@@ -110,11 +111,11 @@ const result = computed<ParseResult>(() => {
   <div class="tool">
     <div class="card">
       <div class="card-title">
-        Cron 表达式
-        <span class="sub">支持标准 5 段和 Quartz 6~7 段（秒 分 时 日 月 周 [年]）</span>
+        {{ t('cron.title') }}
+        <span class="sub">{{ t('cron.sub') }}</span>
       </div>
       <div class="input-row">
-        <a-input v-model:value="expr" placeholder="0 0/30 9-18 * * MON-FRI" class="mono big" allow-clear />
+        <a-input v-model:value="expr" :placeholder="t('cron.cronPlaceholder')" class="mono big" allow-clear />
       </div>
       <div class="examples">
         <a-tag
@@ -135,14 +136,14 @@ const result = computed<ParseResult>(() => {
 
     <template v-if="!result.error && (result.description || result.nextRuns.length)">
       <div class="card" v-if="result.description">
-        <div class="card-title">含义</div>
+        <div class="card-title">{{ t('cron.meaning') }}</div>
         <div class="desc">{{ result.description }}</div>
       </div>
 
       <div class="card">
         <div class="card-title">
-          最近 5 次执行时间
-          <span class="sub" v-if="result.yearFiltered">（年份字段限制内）</span>
+          {{ t('cron.next5') }}
+          <span class="sub" v-if="result.yearFiltered">{{ t('cron.inYear') }}</span>
         </div>
         <div class="run-row" v-for="(r, i) in result.nextRuns" :key="i">
           <span class="run-idx">{{ i + 1 }}</span>
@@ -151,7 +152,7 @@ const result = computed<ParseResult>(() => {
       </div>
 
       <div class="card" v-if="result.fields.length">
-        <div class="card-title">字段拆解</div>
+        <div class="card-title">{{ t('cron.fields') }}</div>
         <div class="fields">
           <div class="field" v-for="(f, i) in result.fields" :key="i">
             <div class="field-label">{{ f.label }}</div>

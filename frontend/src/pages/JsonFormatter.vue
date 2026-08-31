@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
+import { t } from '../i18n'
 
 const input = ref('')
 const output = ref('')
@@ -8,51 +9,51 @@ const indent = ref(2)
 
 const format = () => {
   if (!input.value.trim()) {
-    message.warning('请输入 JSON')
+    message.warning(t('json.enterJson'))
     return
   }
   try {
     const parsed = JSON.parse(input.value)
     output.value = JSON.stringify(parsed, null, indent.value)
-    message.success('格式化成功')
+    message.success(t('json.formatOk'))
   } catch (e: unknown) {
     output.value = ''
-    message.error('JSON 语法错误: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('json.syntaxErr') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const minify = () => {
   if (!input.value.trim()) {
-    message.warning('请输入 JSON')
+    message.warning(t('json.enterJson'))
     return
   }
   try {
     const parsed = JSON.parse(input.value)
     output.value = JSON.stringify(parsed)
-    message.success('压缩成功')
+    message.success(t('json.minifyOk'))
   } catch (e: unknown) {
     output.value = ''
-    message.error('JSON 语法错误: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('json.syntaxErr') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const validate = () => {
   if (!input.value.trim()) {
-    message.warning('请输入 JSON')
+    message.warning(t('json.enterJson'))
     return
   }
   try {
     JSON.parse(input.value)
-    message.success('JSON 语法正确')
+    message.success(t('json.validOk'))
   } catch (e: unknown) {
-    message.error('JSON 语法错误: ' + (e instanceof Error ? e.message : String(e)))
+    message.error(t('json.syntaxErr') + (e instanceof Error ? e.message : String(e)))
   }
 }
 
 const copyOutput = () => {
   if (!output.value) return
   navigator.clipboard.writeText(output.value)
-  message.success('已复制')
+  message.success(t('json.copied'))
 }
 
 const swapToInput = () => {
@@ -66,30 +67,30 @@ const swapToInput = () => {
   <div class="page">
     <div class="toolbar">
       <a-select v-model:value="indent" style="width: 110px">
-        <a-select-option :value="2">2 空格缩进</a-select-option>
-        <a-select-option :value="4">4 空格缩进</a-select-option>
-        <a-select-option :value="0">压缩(无缩进)</a-select-option>
+        <a-select-option :value="2">{{ t('json.indent2') }}</a-select-option>
+        <a-select-option :value="4">{{ t('json.indent4') }}</a-select-option>
+        <a-select-option :value="0">{{ t('json.min') }}</a-select-option>
       </a-select>
-      <a-button type="primary" @click="format">格式化</a-button>
-      <a-button @click="minify">压缩</a-button>
-      <a-button @click="validate">校验</a-button>
+      <a-button type="primary" @click="format">{{ t('json.format') }}</a-button>
+      <a-button @click="minify">{{ t('json.minify') }}</a-button>
+      <a-button @click="validate">{{ t('json.validate') }}</a-button>
     </div>
     <div class="editor-area">
       <div class="editor-col">
-        <div class="col-label">输入</div>
+        <div class="col-label">{{ t('json.input') }}</div>
         <a-textarea
           v-model:value="input"
-          placeholder='粘贴 JSON，如 {"name":"test","value":123}'
+          :placeholder="t('json.placeholder')"
           :rows="16"
           class="json-input"
         />
       </div>
       <div class="editor-col">
         <div class="col-label">
-          <span>输出</span>
+          <span>{{ t('json.output') }}</span>
           <span class="col-actions">
-            <a-button size="small" type="link" @click="copyOutput" :disabled="!output">复制</a-button>
-            <a-button size="small" type="link" @click="swapToInput" :disabled="!output">填入输入</a-button>
+            <a-button size="small" type="link" @click="copyOutput" :disabled="!output">{{ t('json.copy') }}</a-button>
+            <a-button size="small" type="link" @click="swapToInput" :disabled="!output">{{ t('json.fillInput') }}</a-button>
           </span>
         </div>
         <pre class="json-output">{{ output }}</pre>

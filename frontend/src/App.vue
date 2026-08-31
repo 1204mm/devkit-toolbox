@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { ConfigProvider } from 'ant-design-vue'
+import { lang, setLang, antdLocale, isZh, t } from './i18n'
 import PortManager from './pages/PortManager.vue'
 import Crypto from './pages/Crypto.vue'
 import JsonFormatter from './pages/JsonFormatter.vue'
@@ -9,42 +11,49 @@ import IconForge from './pages/IconForge.vue'
 
 const activeMenu = ref('port')
 
-const menuItems = [
-  { key: 'port', label: '端口管理' },
-  { key: 'crypto', label: '加密解密' },
-  { key: 'totp', label: '2FA验证码' },
-  { key: 'json', label: 'JSON格式化' },
-  { key: 'tools', label: '常用工具' },
-  { key: 'iconforge', label: '图标生成' },
-]
+const menuItems = computed(() => [
+  { key: 'port', label: t('nav.port') },
+  { key: 'crypto', label: t('nav.crypto') },
+  { key: 'totp', label: t('nav.totp') },
+  { key: 'json', label: t('nav.json') },
+  { key: 'tools', label: t('nav.tools') },
+  { key: 'iconforge', label: t('nav.iconforge') },
+])
+
+const toggleLang = () => setLang(isZh.value ? 'en' : 'zh')
 </script>
 
 <template>
-  <div class="app">
-    <header class="header">
-      <div class="header-left">
-        <span class="logo">DevKit</span>
-        <nav class="nav">
-          <button
-            v-for="item in menuItems"
-            :key="item.key"
-            :class="['nav-item', { active: activeMenu === item.key }]"
-            @click="activeMenu = item.key"
-          >
-            {{ item.label }}
-          </button>
-        </nav>
-      </div>
-    </header>
-    <main class="main">
-      <PortManager v-if="activeMenu === 'port'" />
-      <Crypto v-else-if="activeMenu === 'crypto'" />
-      <Totp v-else-if="activeMenu === 'totp'" />
-      <JsonFormatter v-else-if="activeMenu === 'json'" />
-      <DevTools v-else-if="activeMenu === 'tools'" />
-      <IconForge v-else-if="activeMenu === 'iconforge'" />
-    </main>
-  </div>
+  <a-config-provider :locale="antdLocale">
+    <div class="app">
+      <header class="header">
+        <button class="lang-btn" @click="toggleLang" :title="isZh ? 'Switch language' : '切换语言'">
+          {{ isZh ? t('switch.en') : t('switch.zh') }}
+        </button>
+        <div class="header-left">
+          <span class="logo">DevKit</span>
+          <nav class="nav">
+            <button
+              v-for="item in menuItems"
+              :key="item.key"
+              :class="['nav-item', { active: activeMenu === item.key }]"
+              @click="activeMenu = item.key"
+            >
+              {{ item.label }}
+            </button>
+          </nav>
+        </div>
+      </header>
+      <main class="main">
+        <PortManager v-if="activeMenu === 'port'" />
+        <Crypto v-else-if="activeMenu === 'crypto'" />
+        <Totp v-else-if="activeMenu === 'totp'" />
+        <JsonFormatter v-else-if="activeMenu === 'json'" />
+        <DevTools v-else-if="activeMenu === 'tools'" />
+        <IconForge v-else-if="activeMenu === 'iconforge'" />
+      </main>
+    </div>
+  </a-config-provider>
 </template>
 
 <style scoped>
@@ -63,6 +72,25 @@ const menuItems = [
   padding: 0 16px;
   background: #181825;
   border-bottom: 1px solid #313244;
+}
+
+.lang-btn {
+  margin-right: 24px;
+  border: 1px solid #313244;
+  background: transparent;
+  color: #a6adc8;
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.lang-btn:hover {
+  color: #89b4fa;
+  border-color: #89b4fa;
 }
 
 .header-left {

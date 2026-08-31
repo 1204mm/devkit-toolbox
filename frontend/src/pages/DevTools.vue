@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import TimestampTool from './tools/TimestampTool.vue'
 import JwtTool from './tools/JwtTool.vue'
 import CronTool from './tools/CronTool.vue'
 import UuidTool from './tools/UuidTool.vue'
 import RegexTool from './tools/RegexTool.vue'
+import { t } from '../i18n'
 
-const tools = [
-  { key: 'timestamp', label: '时间戳转换', desc: 'Unix 秒/毫秒 ↔ 日期' },
-  { key: 'jwt', label: 'JWT 解码', desc: 'Header/Payload 与过期时间' },
-  { key: 'cron', label: 'Cron 表达式', desc: 'Quartz/标准，下次执行时间' },
-  { key: 'uuid', label: 'UUID 生成', desc: '批量生成 v4 UUID' },
-  { key: 'regex', label: '正则测试', desc: '实时匹配与分组高亮' },
-]
+const tools = computed(() => [
+  { key: 'timestamp', label: t('tools.timestamp'), desc: t('tools.timestampDesc') },
+  { key: 'jwt', label: t('tools.jwt'), desc: t('tools.jwtDesc') },
+  { key: 'cron', label: t('tools.cron'), desc: t('tools.cronDesc') },
+  { key: 'uuid', label: t('tools.uuid'), desc: t('tools.uuidDesc') },
+  { key: 'regex', label: t('tools.regex'), desc: t('tools.regexDesc') },
+])
 
 const active = ref('timestamp')
 </script>
