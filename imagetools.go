@@ -95,10 +95,13 @@ func DetectCornerRadius(img image.Image) (radius int, detected bool) {
 		return 0, false
 	}
 
-	// 取中位数 + 10% 余量（把抗锯齿边缘也切干净）
+	// 取中位数 + 固定 2px 余量（补偿抗锯齿边缘残留）。
+	// 历史经验：之前用 +10% 比例余量，在大半径图（200+）看起来正常，
+	// 但小半径图（<100）会被多切 1.5-2 倍比例 → 把图标本体的圆角切坏。
+	// 固定像素余量更稳定：大半径/小半径绝对差值都只有 1-2px。
 	sort.Ints(radii)
 	median := radii[len(radii)/2]
-	result := median + median/10
+	result := median + 2
 	maxR := int(math.Min(float64(w), float64(h))) / 2
 	if result > maxR {
 		result = maxR
@@ -112,6 +115,200 @@ func DetectCornerRadius(img image.Image) (radius int, detected bool) {
 		result = 4
 	}
 	return result, true
+}
+
+// DetectIconParams 自动识别圆角半径 + 内容包围盒（组合入口，保证两者互相匹配）。
+//
+// 关键：当检测到内容包围盒（自动裁剪生效）时，圆角半径必须在"裁剪区域"上重新检测。
+// 因为 DetectCornerRadius 是在整图上测的，测到的是"外层结构"的圆角；
+// 若内容包围盒只框住了内层图案（如白底+白色系图标+中心深色图案的图片，
+// 浅色图标本体色差 < 15 会被漏掉），裁剪框远小于外层结构，
+// 直接套用外层半径会导致圆角比例爆炸（40%+）→ 图案四角被切掉近一半。
+func DetectIconParams(img image.Image) (radius int, cornerDetected bool, cx, cy, cw, ch int, contentDetected bool) {
+	radius, cornerDetected = DetectCornerRadius(img)
+	cx, cy, cw, ch, contentDetected = DetectContentBounds(img)
+	if !contentDetected {
+		return
+	}
+
+	// 与前端一致的裁剪框：以内容中心为中心的最大正方形
+	b := img.Bounds()
+	w, h := b.Dx(), b.Dy()
+	side := cw
+	if ch > side {
+		side = ch
+	}
+	if side > w {
+		side = w
+	}
+	if side > h {
+		side = h
+	}
+	x0 := cx + cw/2 - side/2
+	y0 := cy + ch/2 - side/2
+	if x0 < 0 {
+		x0 = 0
+	}
+	if y0 < 0 {
+		y0 = 0
+	}
+	if x0+side > w {
+		x0 = w - side
+	}
+	if y0+side > h {
+		y0 = h - side
+	}
+
+	// 在裁剪区域上重新检测圆角：半径与裁剪框天然同尺度
+	sub := imaging.Crop(img, image.Rect(b.Min.X+x0, b.Min.Y+y0, b.Min.X+x0+side, b.Min.Y+y0+side))
+	radius, cornerDetected = DetectCornerRadius(sub)
+	return
+}
+
+// DetectContentBounds 自动检测"非背景"内容的包围盒。
+// 用于图片四周有留白（白底/透明）+ 中心图标本体的场景，让前端自动把裁剪框对齐到图标。
+// 返回 (x, y, w, h, detected)。当内容几乎填满整图时返回 detected=false，前端可保持默认居中裁剪。
+func DetectContentBounds(img image.Image) (int, int, int, int, bool) {
+	bounds := img.Bounds()
+	w := bounds.Dx()
+	h := bounds.Dy()
+	if w < 40 || h < 40 {
+		return 0, 0, w, h, false
+	}
+
+	// 背景色：取四角中心 1px 像素的平均值。
+	// 实际图片四角背景通常一致；若其中一角与中心内容一致，content 会被识别为内容，留白不会误触发。
+	// 注意：累加必须用 int 避免 uint8 溢出（255*4=1020 溢出成 252）。
+	var sr, sg, sb, sa int
+	corners := [4][2]int{{0, 0}, {w - 1, 0}, {0, h - 1}, {w - 1, h - 1}}
+	for _, c := range corners {
+		p := pixelAt(img, bounds, c[0], c[1])
+		sr += int(p.R)
+		sg += int(p.G)
+		sb += int(p.B)
+		sa += int(p.A)
+	}
+	bg := color.RGBA{
+		R: uint8(sr / 4),
+		G: uint8(sg / 4),
+		B: uint8(sb / 4),
+		A: uint8(sa / 4),
+	}
+	isTransparent := bg.A < 20
+	if os.Getenv("ICONFORGE_DEBUG") == "1" {
+		fmt.Fprintf(os.Stderr, "DetectContentBounds: bg=R%dG%dB%dA%d transparent=%v\n", bg.R, bg.G, bg.B, bg.A, isTransparent)
+	}
+
+	// 内容判定（结构化，两级阈值）：
+	// - 强内容：单像素与背景色差 > 15（或透明背景下 alpha>=128）—— 深色图案、清晰边界
+	// - 弱内容：单像素色差 > 8 —— 白上白的浅色图标本体（色差~14）只有弱内容
+	// 行/列级判定：出现任一强内容像素即算；否则统计弱内容占比，过半才算。
+	// 这样"整行/整列的结构性突变"（图标边界）能识别，而稀疏噪点、
+	// JPEG 压缩杂色不会误触发；渐变背景若整片偏移会得到"铺满整图"→ 不触发，安全。
+	strongContent := func(c color.RGBA) bool {
+		if isTransparent {
+			return c.A >= 128
+		}
+		return colorDistance(c, bg) > 15
+	}
+	weakContent := func(c color.RGBA) bool {
+		if isTransparent {
+			return c.A >= 64
+		}
+		return colorDistance(c, bg) > 8
+	}
+	// rowHasContent 判断第 y 行是否有内容（强内容提前退出，弱内容统计过半）
+	rowHasContent := func(y int) bool {
+		weak := 0
+		for x := 0; x < w; x++ {
+			c := pixelAt(img, bounds, x, y)
+			if strongContent(c) {
+				return true
+			}
+			if weakContent(c) {
+				weak++
+			}
+		}
+		return weak > w/2
+	}
+	// colHasContent 判断第 x 列是否有内容
+	colHasContent := func(x int) bool {
+		weak := 0
+		for y := 0; y < h; y++ {
+			c := pixelAt(img, bounds, x, y)
+			if strongContent(c) {
+				return true
+			}
+			if weakContent(c) {
+				weak++
+			}
+		}
+		return weak > h/2
+	}
+
+	// 顶边向下扫描
+	topY := -1
+	for y := 0; y < h; y++ {
+		if rowHasContent(y) {
+			topY = y
+			break
+		}
+	}
+	if os.Getenv("ICONFORGE_DEBUG") == "1" {
+		fmt.Fprintf(os.Stderr, "  topY=%d\n", topY)
+	}
+	if topY < 0 {
+		return 0, 0, w, h, false
+	}
+
+	// 底边向上扫描
+	bottomY := -1
+	for y := h - 1; y >= topY; y-- {
+		if rowHasContent(y) {
+			bottomY = y
+			break
+		}
+	}
+	if bottomY < 0 {
+		return 0, 0, w, h, false
+	}
+
+	// 左边向右扫描
+	leftX := -1
+	for x := 0; x < w; x++ {
+		if colHasContent(x) {
+			leftX = x
+			break
+		}
+	}
+	if leftX < 0 {
+		return 0, 0, w, h, false
+	}
+
+	// 右边向左扫描
+	rightX := -1
+	for x := w - 1; x >= leftX; x-- {
+		if colHasContent(x) {
+			rightX = x
+			break
+		}
+	}
+	if rightX < 0 {
+		return 0, 0, w, h, false
+	}
+
+	cw := rightX - leftX + 1
+	ch := bottomY - topY + 1
+
+	// 内容几乎填满整图（>=95%）→ 没有需要去除的留白，不触发自动裁剪
+	if cw*100 >= w*95 && ch*100 >= h*95 {
+		return 0, 0, w, h, false
+	}
+	// 内容太小（< 20% 边长）→ 可能是噪点/异常图，放弃
+	if cw*5 < w || ch*5 < h {
+		return 0, 0, w, h, false
+	}
+	return leftX, topY, cw, ch, true
 }
 
 // scanCornerDiagonal 从角点沿 45° 对角线向内扫描，返回转折点的轴向距离 t
@@ -144,17 +341,25 @@ func scanCornerDiagonal(img image.Image, bounds image.Rectangle, cx, cy, dx, dy 
 				}
 			}
 			if ok {
-				// 突变性校验：t-1 像素必须仍"明显接近背景"（distance < 8）。
-				// 真实圆角的过渡是突变的（透明→不透明），t-1 几乎与背景一致；
-				// 渐变图像的过渡是平滑的，t-1 距背景已超阈值 → 视为渐变，跳过。
-				if step > 1 {
-					prev := pixelAt(img, bounds, cx+dx*(step-1), cy+dy*(step-1))
-					if colorDistance(prev, bg) > 8 {
-						continue
-					}
+			// 突变性校验：t-1 像素必须仍"明显接近背景"。
+			// 真实圆角的过渡是突变的（1-2px 内跳变），t-1 几乎与背景一致；
+			// 渐变图像的过渡是平滑的，t-1 距背景已明显偏移 → 视为渐变，跳过。
+			// 两个宽容项：
+			//   1. 距离阈值 12（与 isBg 一致）：抗锯齿过渡像素的 RGB 混合色仍较接近背景
+			//   2. 透明背景下 alpha<100 的半透明 AA 像素视为接近背景
+			//      （其 RGB 是与前景的混合色，RGB 距离不可靠，只有 alpha 是真实信号）
+			if step > 1 {
+				prev := pixelAt(img, bounds, cx+dx*(step-1), cy+dy*(step-1))
+				close := colorDistance(prev, bg) < 12
+				if !close && bg.A < 20 && prev.A < 100 {
+					close = true
 				}
-				return step, true
+				if !close {
+					continue
+				}
 			}
+			return step, true
+		}
 			// 视为噪点，继续向内扫描
 		}
 	}

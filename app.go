@@ -974,12 +974,17 @@ func (a *App) totpSaveStorage(storage []TOTPSecret) error {
 
 // ImageInfo 前端拿到的图片信息
 type ImageInfo struct {
-	Name           string `json:"name"`
-	Width          int    `json:"width"`
-	Height         int    `json:"height"`
-	DataURL        string `json:"dataUrl"`
-	DetectedRadius int    `json:"detectedRadius"` // 自动识别的圆角半径
-	CornerDetected bool   `json:"cornerDetected"` // 是否识别到圆角外背景
+	Name            string `json:"name"`
+	Width           int    `json:"width"`
+	Height          int    `json:"height"`
+	DataURL         string `json:"dataUrl"`
+	DetectedRadius  int    `json:"detectedRadius"`  // 自动识别的圆角半径
+	CornerDetected  bool   `json:"cornerDetected"`  // 是否识别到圆角外背景
+	ContentX        int    `json:"contentX"`        // 自动定位的内容包围盒 x
+	ContentY        int    `json:"contentY"`        // 自动定位的内容包围盒 y
+	ContentW        int    `json:"contentW"`        // 自动定位的内容包围盒 w
+	ContentH        int    `json:"contentH"`        // 自动定位的内容包围盒 h
+	ContentDetected bool   `json:"contentDetected"` // 是否自动定位到内容（非铺满整图）
 }
 
 // ExportParams 导出 ICO 的参数
@@ -1008,16 +1013,21 @@ func loadImageByPath(path string) (*ImageInfo, error) {
 		mime = "image/jpeg"
 	}
 
-	// 自动识别圆角
-	radius, detected := DetectCornerRadius(img)
+	// 自动识别圆角 + 内容包围盒（组合检测：自动裁剪生效时半径在裁剪区域上重测，保证尺度一致）
+	radius, detected, cx, cy, cw, ch, contentOK := DetectIconParams(img)
 
 	return &ImageInfo{
-		Name:           filepath.Base(path),
-		Width:          bounds.Dx(),
-		Height:         bounds.Dy(),
-		DataURL:        "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data),
-		DetectedRadius: radius,
-		CornerDetected: detected,
+		Name:            filepath.Base(path),
+		Width:           bounds.Dx(),
+		Height:          bounds.Dy(),
+		DataURL:         "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data),
+		DetectedRadius:  radius,
+		CornerDetected:  detected,
+		ContentX:        cx,
+		ContentY:        cy,
+		ContentW:        cw,
+		ContentH:        ch,
+		ContentDetected: contentOK,
 	}, nil
 }
 

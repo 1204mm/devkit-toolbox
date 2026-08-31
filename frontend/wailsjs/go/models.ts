@@ -27,22 +27,32 @@ export namespace main {
 	    width: number;
 	    height: number;
 	    dataUrl: string;
-	    detectedRadius: number;
-	    cornerDetected: boolean;
-	
-	    static createFrom(source: any = {}) {
-	        return new ImageInfo(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.name = source["name"];
-	        this.width = source["width"];
-	        this.height = source["height"];
-	        this.dataUrl = source["dataUrl"];
-	        this.detectedRadius = source["detectedRadius"];
-	        this.cornerDetected = source["cornerDetected"];
-	    }
+	detectedRadius: number;
+	cornerDetected: boolean;
+	contentX: number;
+	contentY: number;
+	contentW: number;
+	contentH: number;
+	contentDetected: boolean;
+
+	static createFrom(source: any = {}) {
+        return new ImageInfo(source);
+    }
+
+    constructor(source: any = {}) {
+        if ('string' === typeof source) source = JSON.parse(source);
+        this.name = source["name"];
+        this.width = source["width"];
+        this.height = source["height"];
+        this.dataUrl = source["dataUrl"];
+        this.detectedRadius = source["detectedRadius"];
+        this.cornerDetected = source["cornerDetected"];
+        this.contentX = source["contentX"];
+        this.contentY = source["contentY"];
+        this.contentW = source["contentW"];
+        this.contentH = source["contentH"];
+        this.contentDetected = source["contentDetected"];
+    }
 	}
 	export class PortInfo {
 	    port: number;

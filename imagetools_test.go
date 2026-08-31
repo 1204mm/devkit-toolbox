@@ -77,6 +77,73 @@ func TestDetectCornerRadiusRealistic(t *testing.T) {
 	}
 }
 
+// makeRoundedIconAA 生成"真实导出图片"风格的测试图：
+// 图标边缘带抗锯齿柔和过渡（按 SDF 距离插值 alpha），模拟截图/PNG 导出效果。
+// 外部白底 + 圆角图标（淡渐变主体 + 中心蓝色 glyph）。
+func makeRoundedIconAA(s, r int, blur float64) *image.NRGBA {
+	img := image.NewNRGBA(image.Rect(0, 0, s, s))
+	pad := s / 10
+	inner := s - pad*2
+	for y := 0; y < s; y++ {
+		for x := 0; x < s; x++ {
+			// 白色页面底
+			img.Set(x, y, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+			// 图标：圆角矩形，边缘按 SDF 插值 alpha（blur 控制过渡带宽度）
+			d := roundedRectSDF(float64(x)+0.5-float64(pad), float64(y)+0.5-float64(pad), float64(inner), float64(inner), float64(r))
+			cov := 0.5 - d/blur // blur=1 → 1px 过渡带
+			if cov > 1 {
+				cov = 1
+			}
+			if cov > 0 {
+				shade := uint8(246 - (x+y)/(s*2/255*8))
+				ic := color.NRGBA{R: shade, G: shade, B: shade + 2, A: 255}
+				bg := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+				// alpha 混合
+				a := uint8(cov * 255)
+				mix := func(c1, c2 uint8) uint8 {
+					return uint8(int(c1) + (int(c2)-int(c1))*int(a)/255)
+				}
+				px := color.NRGBA{
+					R: mix(bg.R, ic.R), G: mix(bg.G, ic.G), B: mix(bg.B, ic.B), A: 255,
+				}
+				img.Set(x, y, px)
+			}
+		}
+	}
+	// 中心蓝色 glyph
+	gpad := s / 4
+	ginner := s - gpad*2
+	gr := ginner / 4
+	for y := 0; y < ginner; y++ {
+		for x := 0; x < ginner; x++ {
+			d := roundedRectSDF(float64(x)+0.5, float64(y)+0.5, float64(ginner), float64(ginner), float64(gr))
+			if d <= 0 {
+				img.Set(x+gpad, y+gpad, color.NRGBA{R: 30, G: 100, B: 230, A: 255})
+			}
+		}
+	}
+	return img
+}
+
+// TestDetectCornerRadiusAA 验证抗锯齿边缘下的识别精度（真实图片场景）
+func TestDetectCornerRadiusAA(t *testing.T) {
+	for _, blur := range []float64{1, 2, 3} {
+		img := makeRoundedIconAA(1024, 200, blur)
+		r, detected := DetectCornerRadius(img)
+		t.Logf("blur=%.1f: 检测到=%v 识别半径=%d (期望200)", blur, detected, r)
+		if !detected {
+			t.Fatalf("blur=%.1f 应检测到圆角背景", blur)
+		}
+		// 多切（偏大）比少切更严重：限制 +10%
+		if r > 200*110/100 {
+			t.Errorf("blur=%.1f 识别半径 %d 超过 +10%% 上限 220，会多切图标本体", blur, r)
+		}
+		if r < 200*80/100 {
+			t.Errorf("blur=%.1f 识别半径 %d 低于 -20%% 下限 160，没切干净", blur, r)
+		}
+	}
+}
+
 // makeRoundedSquareOnGradient 模拟用户提供的真实图片：
 // 整张图的外层是带圆角的方形（圆角外区域透明），内部是淡白渐变 + 中心蓝色图标。
 // 这才是 iOS 风格的应用图标结构：外层圆角 + 内部内容。
@@ -134,6 +201,28 @@ func TestDetectCornerRadius(t *testing.T) {
 		t.Fatalf("识别半径 %d 超出预期范围 [%d,%d]", r, lo, hi)
 	}
 	t.Logf("识别半径: %d (期望约64)", r)
+}
+
+// TestDetectCornerRadiusSmallNoOvershoot 验证"小半径不被多切"：
+// 历史 bug：+10% 比例余量在小半径时会多切 1.5-2 倍比例；
+// 修复后用固定 2px 余量，"多切"应控制在 +15% 以内（偏小不限制，因为更安全）。
+func TestDetectCornerRadiusSmallNoOvershoot(t *testing.T) {
+	img := makeRoundedIcon(512, 32) // 期望半径 32
+	r, detected := DetectCornerRadius(img)
+	if !detected {
+		t.Fatal("应检测到圆角背景")
+	}
+	// 关注"多切"问题：r 不能超过 actual * 1.15
+	maxR := 32 * 115 / 100
+	if r > maxR {
+		t.Fatalf("小半径识别 %d 超过 +15%% 上限 (%d)，会把图标本体多切", r, maxR)
+	}
+	// 下限也要合理（不小于 actual * 0.7，否则可能没切干净）
+	minR := 32 * 70 / 100
+	if r < minR {
+		t.Fatalf("小半径识别 %d 低于 -30%% 下限 (%d)，可能根本没识别到", r, minR)
+	}
+	t.Logf("识别半径: %d (期望约32)", r)
 }
 
 func TestDetectFlatImage(t *testing.T) {
@@ -275,6 +364,380 @@ func TestBuildIconPipeline(t *testing.T) {
 	t.Logf("生成 ICO 大小: %d 字节", len(data))
 }
 
+// TestDetectIconParamsGlyphCrop 复现"多切圆角"场景：
+// 白底页面 + 白色系图标本体（旧算法色差~14<15 会漏掉）+ 中心深色图案。
+// 结构化内容检测升级后：浅色图标本体（1080 边长）也应被框进来 →
+// 内容框 = 图标本体，裁剪后在图标本体上重测圆角（~216/1080 = 20%）。
+func TestDetectIconParamsGlyphCrop(t *testing.T) {
+	s := 1200
+	img := image.NewNRGBA(image.Rect(0, 0, s, s))
+	for y := 0; y < s; y++ {
+		for x := 0; x < s; x++ {
+			img.Set(x, y, color.NRGBA{R: 255, G: 255, B: 255, A: 255}) // 白色页面底
+		}
+	}
+	// 白色系图标（色差 ~14）：1080 边长，圆角 216（20%），位于 (60,60)
+	pad, inner, iconR := 60, 1080, 216
+	for y := pad; y < pad+inner; y++ {
+		for x := pad; x < pad+inner; x++ {
+			d := roundedRectSDF(float64(x)+0.5-float64(pad), float64(y)+0.5-float64(pad), float64(inner), float64(inner), float64(iconR))
+			if d <= 0 {
+				img.Set(x, y, color.NRGBA{R: 246, G: 246, B: 249, A: 255})
+			}
+		}
+	}
+	// 中心蓝色图案：500 边长，圆角 100
+	gpad, ginner, gr := (s-500)/2, 500, 100
+	for y := gpad; y < gpad+ginner; y++ {
+		for x := gpad; x < gpad+ginner; x++ {
+			d := roundedRectSDF(float64(x)+0.5-float64(gpad), float64(y)+0.5-float64(gpad), float64(ginner), float64(ginner), float64(gr))
+			if d <= 0 {
+				img.Set(x, y, color.NRGBA{R: 30, G: 100, B: 230, A: 255})
+			}
+		}
+	}
+
+	r, cornerOK, cx, cy, cw, ch, contentOK := DetectIconParams(img)
+	t.Logf("radius=%d cornerOK=%v content=(%d,%d,%d,%d) contentOK=%v", r, cornerOK, cx, cy, cw, ch, contentOK)
+
+	// 内容应被检测到
+	if !contentOK {
+		t.Fatal("应检测到内容包围盒")
+	}
+	// 结构化检测升级：应框住浅色图标本体（1080），而不是只框中心图案（500）
+	if cw < 1000 || ch < 1000 {
+		t.Fatalf("内容框 (%d,%d,%d,%d) 只框住了中心图案，浅色图标本体被漏掉", cx, cy, cw, ch)
+	}
+	// 裁剪框边长（与前端一致）
+	side := cw
+	if ch > side {
+		side = ch
+	}
+	if side > s {
+		side = s
+	}
+	if cornerOK {
+		ratio := float64(r) * 100 / float64(side)
+		t.Logf("radius/crop = %.1f%%（图标本体实际圆角比例 216/1080 = 20%%）", ratio)
+		// 多切防护：比例不应明显超过实际（旧 bug 只框图案时会到 43%）
+		if ratio > 30 {
+			t.Fatalf("圆角比例 %.1f%% 过大（多切风险）", ratio)
+		}
+	} else {
+		t.Logf("裁剪区域未检测到圆角（不切，安全）")
+	}
+}
+
+// TestDetectIconParamsFullImage 图标铺满整图（无自动裁剪）时行为不变
+func TestDetectIconParamsFullImage(t *testing.T) {
+	img := makeRoundedSquareOnGradient(1024, 200)
+	r, cornerOK, _, _, _, _, contentOK := DetectIconParams(img)
+	if contentOK {
+		t.Fatal("满幅图不应触发自动定位")
+	}
+	if !cornerOK {
+		t.Fatal("应检测到圆角")
+	}
+	lo, hi := 200*80/100, 200*110/100
+	if r < lo || r > hi {
+		t.Fatalf("识别半径 %d 超出范围 [%d,%d]", r, lo, hi)
+	}
+}
+
+// ===================== 通用性场景矩阵 =====================
+// 模拟真实世界各种来源的图标图片，评估 DetectIconParams 的综合表现。
+// 每个场景给定期望（内容框 / 圆角 / 比例），统一在矩阵测试中断言。
+
+// scFill 纯色铺底
+func scFill(img *image.NRGBA, s int, c color.NRGBA) {
+	for y := 0; y < s; y++ {
+		for x := 0; x < s; x++ {
+			img.Set(x, y, c)
+		}
+	}
+}
+
+// scRoundedRect 画一个圆角矩形（纯色，硬边缘）
+func scRoundedRect(img *image.NRGBA, x0, y0, size, r int, c color.NRGBA) {
+	for y := y0; y < y0+size; y++ {
+		for x := x0; x < x0+size; x++ {
+			d := roundedRectSDF(float64(x)+0.5-float64(x0), float64(y)+0.5-float64(y0), float64(size), float64(size), float64(r))
+			if d <= 0 {
+				img.Set(x, y, c)
+			}
+		}
+	}
+}
+
+// scRoundedRectAA 画一个带抗锯齿边缘的圆角矩形（alpha 混合）
+func scRoundedRectAA(img *image.NRGBA, x0, y0, size, r int, c color.NRGBA, blur float64) {
+	for y := y0; y < y0+size; y++ {
+		for x := x0; x < x0+size; x++ {
+			d := roundedRectSDF(float64(x)+0.5-float64(x0), float64(y)+0.5-float64(y0), float64(size), float64(size), float64(r))
+			cov := 0.5 - d/blur
+			if cov <= 0 {
+				continue
+			}
+			if cov > 1 {
+				cov = 1
+			}
+			src := img.NRGBAAt(x, y)
+			a := int(cov * 255)
+			mix := func(c1, c2 uint8) uint8 {
+				return uint8(int(c1) + (int(c2)-int(c1))*a/255)
+			}
+			img.Set(x, y, color.NRGBA{R: mix(src.R, c.R), G: mix(src.G, c.G), B: mix(src.B, c.B), A: mix(src.A, c.A)})
+		}
+	}
+}
+
+// scNoise 添加 ±n 的随机噪点（模拟 JPEG 压缩杂色）
+func scNoise(img *image.NRGBA, s, n int) {
+	seed := 12345
+	next := func() int {
+		seed = (seed*1103515245 + 12345) & 0x7fffffff
+		return seed
+	}
+	for y := 0; y < s; y++ {
+		for x := 0; x < s; x++ {
+			p := img.NRGBAAt(x, y)
+			d := next() % (2*n + 1) - n
+			clamp := func(v int) uint8 {
+				if v < 0 {
+					return 0
+				}
+				if v > 255 {
+					return 255
+				}
+				return uint8(v)
+			}
+			img.Set(x, y, color.NRGBA{R: clamp(int(p.R) + d), G: clamp(int(p.G) + d), B: clamp(int(p.B) + d), A: p.A})
+		}
+	}
+}
+
+// TestScenarioMatrix 通用性评估矩阵：覆盖 10 类典型图标来源
+func TestScenarioMatrix(t *testing.T) {
+	type exp struct {
+		name          string
+		img           *image.NRGBA
+		wantContent   bool  // 期望触发自动裁剪
+		wantCorner    bool  // 期望识别到圆角
+		maxRatio      float64 // 圆角/裁剪框 上限（%），0 表示不检查
+		desc          string
+	}
+	s := 1024
+	white := color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+	blue := color.NRGBA{R: 30, G: 100, B: 230, A: 255}
+	light := color.NRGBA{R: 246, G: 246, B: 249, A: 255}
+
+	mk := func(f func() *image.NRGBA) *image.NRGBA { return f() }
+
+	cases := []exp{
+		{
+			name: "1.透明背景+圆角图标(AA)",
+			desc: "设计软件导出 PNG：透明外圈 + 抗锯齿圆角",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, s, s))
+				scRoundedRectAA(im, 64, 64, 896, 180, blue, 2)
+				return im
+			}),
+			wantContent: true, wantCorner: true, maxRatio: 25,
+		},
+		{
+			name: "2.白底+深色圆角图标",
+			desc: "网页截图：白页面 + 蓝色圆角图标",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, s, s))
+				scFill(im, s, white)
+				scRoundedRect(im, 64, 64, 896, 180, blue)
+				return im
+			}),
+			wantContent: true, wantCorner: true, maxRatio: 25,
+		},
+		{
+			name: "3.白底+浅色图标+中心图案",
+			desc: "iOS 风格：白上白浅色主体 + 深色 glyph",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, 1200, 1200))
+				scFill(im, 1200, white)
+				scRoundedRect(im, 60, 60, 1080, 216, light)
+				scRoundedRect(im, 350, 350, 500, 100, blue)
+				return im
+			}),
+			wantContent: true, wantCorner: true, maxRatio: 25,
+		},
+		{
+			name: "4.深色背景+浅色图标",
+			desc: "深色模式：黑页面 + 白色圆角图标",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, s, s))
+				scFill(im, s, color.NRGBA{R: 20, G: 20, B: 24, A: 255})
+				scRoundedRect(im, 64, 64, 896, 180, white)
+				return im
+			}),
+			wantContent: true, wantCorner: true, maxRatio: 25,
+		},
+		{
+			name: "5.白底+噪点+圆角图标",
+			desc: "JPEG 压缩后的截图：白底带杂色",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, s, s))
+				scFill(im, s, white)
+				scRoundedRect(im, 64, 64, 896, 180, blue)
+				scNoise(im, s, 6)
+				return im
+			}),
+			wantContent: true, wantCorner: true, maxRatio: 30,
+		},
+		{
+			name: "6.非居中图标",
+			desc: "图标偏在图片一角",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, s, s))
+				scFill(im, s, white)
+				scRoundedRect(im, 150, 90, 700, 140, blue)
+				return im
+			}),
+			wantContent: true, wantCorner: true, maxRatio: 25,
+		},
+		{
+			name: "7.小尺寸图(256)",
+			desc: "小图：256px 白底圆角图标",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, 256, 256))
+				scFill(im, 256, white)
+				scRoundedRect(im, 20, 20, 216, 44, blue)
+				return im
+			}),
+			wantContent: true, wantCorner: true, maxRatio: 25, // 44px 是真实圆角（20%），应识别
+		},
+		{
+			name: "8.满幅照片背景",
+			desc: "整图都是照片/花纹 → 不应误触发裁剪或圆角",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, s, s))
+				for y := 0; y < s; y++ {
+					for x := 0; x < s; x++ {
+						im.Set(x, y, color.NRGBA{R: uint8((x*3+y*5)%256), G: uint8((x+y*2)%256), B: uint8((x*7+y)%256), A: 255})
+					}
+				}
+				return im
+			}),
+			wantContent: false, wantCorner: false, maxRatio: 0,
+		},
+		{
+			name: "9.渐变背景+满幅圆角",
+			desc: "图标铺满整图（四周无留白）→ 不裁剪，圆角可识别",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, s, s))
+				for y := 0; y < s; y++ {
+					for x := 0; x < s; x++ {
+						shade := uint8(245 - (x+y)/64) // 真实 iOS 图级别的轻微渐变（全图 ~32 级变化）
+						im.Set(x, y, color.NRGBA{R: shade, G: shade, B: shade + 2, A: 255})
+					}
+				}
+				scRoundedRectAA(im, 0, 0, s, 200, blue, 2)
+				return im
+			}),
+			wantContent: false, wantCorner: true, maxRatio: 25,
+		},
+		{
+			name: "10.白底+直角方块图标",
+			desc: "无圆角的方形图标 → 内容可识别，不应识别出圆角",
+			img: mk(func() *image.NRGBA {
+				im := image.NewNRGBA(image.Rect(0, 0, s, s))
+				scFill(im, s, white)
+				scRoundedRect(im, 64, 64, 896, 0, blue)
+				return im
+			}),
+			wantContent: true, wantCorner: false, maxRatio: 0,
+		},
+	}
+
+	for _, c := range cases {
+		b := c.img.Bounds()
+		w, h := b.Dx(), b.Dy()
+		r, cornerOK, cx, cy, cw, ch, contentOK := DetectIconParams(c.img)
+		t.Logf("[%s] %s", c.name, c.desc)
+		t.Logf("  content=%v box=(%d,%d,%d,%d) corner=%v radius=%d (图 %dx%d)", contentOK, cx, cy, cw, ch, cornerOK, r, w, h)
+
+		if contentOK != c.wantContent {
+			t.Errorf("[%s] 自动裁剪=%v，期望 %v", c.name, contentOK, c.wantContent)
+		}
+		if cornerOK != c.wantCorner {
+			t.Errorf("[%s] 圆角识别=%v（r=%d），期望 %v", c.name, cornerOK, r, c.wantCorner)
+		}
+		if contentOK && cornerOK && c.maxRatio > 0 {
+			side := cw
+			if ch > side {
+				side = ch
+			}
+			ratio := float64(r) * 100 / float64(side)
+			t.Logf("  radius/crop = %.1f%%", ratio)
+			if ratio > c.maxRatio {
+				t.Errorf("[%s] 圆角比例 %.1f%% 超上限 %.0f%%（多切风险）", c.name, ratio, c.maxRatio)
+			}
+		}
+	}
+}
+
+func TestDetectContentBounds(t *testing.T) {
+	// 场景1：1000x1000 大图，中心 600x600 蓝色实心矩形（四周白边）
+	img := image.NewNRGBA(image.Rect(0, 0, 1000, 1000))
+	for y := 0; y < 1000; y++ {
+		for x := 0; x < 1000; x++ {
+			img.Set(x, y, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+		}
+	}
+	for y := 200; y < 800; y++ {
+		for x := 200; x < 800; x++ {
+			img.Set(x, y, color.NRGBA{R: 30, G: 100, B: 230, A: 255})
+		}
+	}
+	bounds := img.Bounds()
+	t.Logf("img bounds: %v, w=%d h=%d", bounds, bounds.Dx(), bounds.Dy())
+	for _, c := range [][2]int{{0, 0}, {999, 0}, {0, 999}, {999, 999}} {
+		r, g, b, a := img.At(c[0], c[1]).RGBA()
+		t.Logf("corner (%d,%d): R=%d G=%d B=%d A=%d", c[0], c[1], r>>8, g>>8, b>>8, a>>8)
+	}
+	x, y, w, h, ok := DetectContentBounds(img)
+	t.Logf("DetectContentBounds: (%d,%d,%d,%d) ok=%v", x, y, w, h, ok)
+	if !ok {
+		t.Fatal("应检测到内容包围盒")
+	}
+	if x != 200 || y != 200 || w != 600 || h != 600 {
+		t.Fatalf("包围盒错误: 期望(200,200,600,600), 实际(%d,%d,%d,%d)", x, y, w, h)
+	}
+
+	// 场景2：满幅图（无留白）→ 不应触发
+	img2 := image.NewNRGBA(image.Rect(0, 0, 500, 500))
+	for y := 0; y < 500; y++ {
+		for x := 0; x < 500; x++ {
+			img2.Set(x, y, color.NRGBA{R: 30, G: 100, B: 230, A: 255})
+		}
+	}
+	_, _, _, _, ok2 := DetectContentBounds(img2)
+	if ok2 {
+		t.Fatal("满幅图不应触发自动定位")
+	}
+
+	// 场景3：透明外圈 + 不透明内矩形（透明背景场景）
+	img3 := image.NewNRGBA(image.Rect(0, 0, 800, 800))
+	for y := 200; y < 600; y++ {
+		for x := 200; x < 600; x++ {
+			img3.Set(x, y, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+		}
+	}
+	x3, y3, w3, h3, ok3 := DetectContentBounds(img3)
+	if !ok3 {
+		t.Fatal("透明背景应检测到内容包围盒")
+	}
+	if x3 != 200 || y3 != 200 || w3 != 400 || h3 != 400 {
+		t.Fatalf("透明背景包围盒错误: 期望(200,200,400,400), 实际(%d,%d,%d,%d)", x3, y3, w3, h3)
+	}
+}
+
 func TestDebugUserImage(t *testing.T) {
 	os.Setenv("ICONFORGE_DEBUG", "1")
 	f, err := os.Open("debug_user.png")
@@ -329,4 +792,27 @@ func TestDebugUserImage(t *testing.T) {
 
 	r, ok := DetectCornerRadius(img)
 	t.Logf("=== r=%d detected=%v ===", r, ok)
+
+	// 模拟前端行为：内容包围盒 → 裁剪框 → 圆角相对裁剪框的比例
+	cx, cy, cw, ch, cok := DetectContentBounds(img)
+	t.Logf("=== content bounds: (%d,%d,%d,%d) detected=%v ===", cx, cy, cw, ch, cok)
+	if cok {
+		side := cw
+		if ch > side {
+			side = ch
+		}
+		cropSize := side
+		if cropSize > w {
+			cropSize = w
+		}
+		if cropSize > h {
+			cropSize = h
+		}
+		effectiveR := r
+		if effectiveR > cropSize/2 {
+			effectiveR = cropSize / 2
+		}
+		t.Logf("=== crop.size=%d, radius=%d, radius/crop=%.1f%% (原图 radius/minSide=%.1f%%) ===",
+			cropSize, effectiveR, float64(effectiveR)*100/float64(cropSize), float64(r)*100/float64(min(w, h)))
+	}
 }

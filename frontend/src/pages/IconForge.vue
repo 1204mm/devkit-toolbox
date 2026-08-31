@@ -42,10 +42,22 @@ function applyImage(info) {
   const im = new Image()
   im.onload = () => {
     imgEl.value = im
-    // 默认裁剪：最大正方形居中
-    crop.size = Math.min(info.width, info.height)
-    crop.x = Math.floor((info.width - crop.size) / 2)
-    crop.y = Math.floor((info.height - crop.size) / 2)
+    // 自动定位内容包围盒（用户图片四周有留白时直接对齐到图标本体）
+    if (info.contentDetected) {
+      const side = Math.max(info.contentW, info.contentH)
+      // 把包围盒放在以内容中心为正方形中心的裁剪框
+      const cx = info.contentX + info.contentW / 2
+      const cy = info.contentY + info.contentH / 2
+      crop.size = Math.min(side, info.width, info.height)
+      crop.x = Math.round(cx - crop.size / 2)
+      crop.y = Math.round(cy - crop.size / 2)
+      clampCrop(crop.x, crop.y)
+    } else {
+      // 默认裁剪：最大正方形居中
+      crop.size = Math.min(info.width, info.height)
+      crop.x = Math.floor((info.width - crop.size) / 2)
+      crop.y = Math.floor((info.height - crop.size) / 2)
+    }
     // 自动圆角
     if (info.cornerDetected) {
       cornerOn.value = true
@@ -240,6 +252,17 @@ function clampCrop(nx, ny) {
 function centerCrop() {
   const w = imgInfo.value.width
   const h = imgInfo.value.height
+  if (imgInfo.value.contentDetected) {
+    // 有自动定位结果时：回到"以内容为中心的正方形裁剪框"
+    const side = Math.min(Math.max(imgInfo.value.contentW, imgInfo.value.contentH), w, h)
+    const cx = imgInfo.value.contentX + imgInfo.value.contentW / 2
+    const cy = imgInfo.value.contentY + imgInfo.value.contentH / 2
+    crop.size = side
+    crop.x = Math.round(cx - side / 2)
+    crop.y = Math.round(cy - side / 2)
+    clampCrop(crop.x, crop.y)
+    return
+  }
   crop.x = Math.floor((w - crop.size) / 2)
   crop.y = Math.floor((h - crop.size) / 2)
 }
@@ -413,6 +436,12 @@ onUnmounted(() => {
             </svg>
             <span>{{ t('ifg.squareCrop') }}</span>
             <span class="sec-badge">{{ t('ifg.cropBadge') }}</span>
+          </div>
+          <div v-if="imgInfo.contentDetected" class="auto-badge">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/>
+            </svg>
+            {{ t('ifg.autoAligned') }}
           </div>
           <div class="slider-row">
             <span class="slider-label">{{ t('ifg.side') }}</span>
